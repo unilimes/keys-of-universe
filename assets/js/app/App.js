@@ -61,8 +61,14 @@ App.utils = {
             projector.setFromCamera(mouseVector, webglObj.camera);
             if (listObjOfScene.length > 0) {
                 var angles = [];
-                for (var i = 0; i < listObjOfScene.length; i++) {
-                    angles = angles.concat(listObjOfScene[i].tipsArray);
+                if (webglObj._dimension) {
+                    for (var i = 0; i < listObjOfScene.length; i++) {
+                        angles = angles.concat(listObjOfScene[i].tipsArray);
+                    }
+                } else {
+                    for (var i = 0; i < listObjOfScene.length; i++) {
+                        angles = angles.concat(listObjOfScene[i].object2D.corner2D.children);
+                    }
                 }
                 var intersect = projector.intersectObjects(angles)[0];
                 if (intersect && intersect.object && intersect.object.category == 'angle') {
@@ -78,11 +84,7 @@ App.utils = {
                 if (xCh) webglObj._2dConsist.position.x += stepX;
                 if (yCh)webglObj._2dConsist.position.y += stepY;
 
-                /*for(var i =0;i<webglObj.listObjOfScene.length;i++){
-                 var cur = webglObj.listObjOfScene[i].tipsObject.position;
-                 if(yCh)cur.y += stepY;
-                 if(xCh)cur.x += stepX;
-                 }*/
+
             }
             App.utils.types.webgl.mouseVector = mouseVector;
 
@@ -138,7 +140,7 @@ App.utils = {
         autoRotate: true,
         mouse: {},
         accessPoint: [],
-        _2dPlateSize: {x: 29, y: 14},
+        _2dPlateSize: {x: 44.5, y: 21},
         webgl: {
             scene: null,
             _dimension: '3D',
@@ -169,19 +171,22 @@ App.utils = {
         changeDimension: function (name, flag, obj) {
             var listObj = name ? App.utils.interfaces.getObjByName(name) : obj;
             if (listObj) {
-                for (var j = 0; j < listObj.pointsArray.length; j++) {
-                    var lastV = listObj.pointsArray[j].visible;
-                    listObj.pointsArray[j].visible = listObj.pointsArray2d[j].visible;
-                    listObj.pointsArray2d[j].visible = lastV;
-                }
+                var point2DVis = listObj.object2D.point2D.visible ? true : false, lastV = listObj.pointsArray[0].visible ? true : false;
+                App.utils.interfaces.tipsArray.tooltipVisible(listObj, point2DVis, false, {
+                    types: lastCheck.point,
+                    category: 'point'
+                });
+                App.utils.interfaces.pointsArray.toggleVisible(listObj, point2DVis);
+                lastCheck.addEl(listObj.name, point2DVis, lastCheck.point);
+                listObj.object2D.point2D.visible = lastV;
+
                 /* trube enable**/
-                for (var j = 0; j < listObj.tubesArray.length; j++) {
-                    var lastV = listObj.tubesArray[j].visible;
-                    listObj.tubesArray[j].visible = lastV?false:true//listObj.linsArray[j].visible;
-                    if(listObj.linsArray[j].is2D)listObj.linsArray[j].visible = lastV?true:false;
-                }
+                var tybeV = listObj.tubesArray[0].visible ? true : false, linsV = listObj.object2D.tube2D.visible;
+                App.utils.interfaces.tubesArray.toggleVisible(listObj, linsV);
+                listObj.object2D.tube2D.visible = tybeV;
+
                 /* trube enable**/
-                if(listObj.listOfPointes.length>3) {
+                if (listObj.listOfPointes.length > 3) {
                     var lastVisibleOf2dCorn = listObj.tipsObject.corner2D.visible/*?true:false*/,
                         lastVPfSq = listObj.tipsObject.genSquare.visible, lastSV, lastAV;
                     for (var j = 0; j < listObj.tipsArray.length; j++) {//square angle
@@ -202,7 +207,9 @@ App.utils = {
                 var lastV = listObj.sphere.visible;
                 listObj.sphere.visible = listObj.circle2D.visible;
                 listObj.circle2D.visible = lastV;
-                listObj.dimensn = flag;
+                var lastV = listObj.shape.visible;
+                listObj.shape.visible = listObj.shape2D.visible;
+                listObj.shape2D.visible = lastV;
             }
         },
         backControls: function (back) {
@@ -306,7 +313,7 @@ App.utils = {
             webglObj.cubeHelper.add(helper);
             //webglObj.cubeHelper.visible=false;
             cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({color: 0xff0000}));
-            //App.rebuildCubes.add(webglObj.cubeHelper, cube);
+            App.rebuildCubes.add(webglObj.cubeHelper, cube);
             webglObj.scene.add(webglObj.cubeHelper);
             webglObj.container.appendChild(renderer.domElement);
 
@@ -326,7 +333,7 @@ App.utils = {
             webglObj.raycaster = new THREE.Raycaster();
             webglObj.mouseVector = new THREE.Vector3();
             //skybox
-            //App.rebuildSkyBox.add();
+            App.rebuildSkyBox.add();
             //gui
             App.guiObj.init();
             //events
@@ -426,6 +433,7 @@ App.utils = {
                 if (curObj.name == name) {
                     webglObj.scene2.remove(curObj.tipsObject);
                     webglObj.scene.remove(curObj);
+                    webglObj._2dConsist.remove(curObj.object2D);
                     webglObj.listObjOfScene.splice(i, 1);
                 }
             }
@@ -546,6 +554,7 @@ App.utils = {
 
         },
         createMultipointPolygon: function (verticiesArray, num) {
+
             if (num > 3) {
                 var geometry = new THREE.Geometry();
                 for (var i = 0; i < verticiesArray.length; i++) {
@@ -563,7 +572,11 @@ App.utils = {
             } else {
                 var points = [];
                 for (var i = 0; i < verticiesArray.length; i++) {
-                    points.push(new THREE.Vector3(verticiesArray[i][0], verticiesArray[i][1], verticiesArray[i][2]));
+                    if (verticiesArray[i] instanceof Array) {
+                        points.push(new THREE.Vector3(verticiesArray[i][0], verticiesArray[i][1], verticiesArray[i][2]));
+                    } else {
+                        points.push(new THREE.Vector3(verticiesArray[i]['x'], verticiesArray[i]['y'], verticiesArray[i]['z']));
+                    }
                 }
 
                 var geometry = new THREE.ConvexGeometry(points);
@@ -583,11 +596,12 @@ App.utils = {
             return geometry;
         },//create tubes for obj
         animateObj: function (name) {
+
             var curObjSpeed = App.guiObj.interfaces.getCurObjSpeed(name),
                 curObj = this.getObjByName(name),
                 timeRotate = curObjSpeed.duration * 10, speed = 900,
                 isRotateByAngle = curObjSpeed.rotate == 'degree';
-            //if (!curObj.isAlreadySetNewGlobalPos)this.translateAllChildrenBySphereCenter(curObj);
+            if (!curObj.isAlreadySetNewGlobalPos)this.translateAllChildrenBySphereCenter(curObj);
             if (curObjSpeed) {
                 curObjSpeed.curFigSet.close();
                 if (isRotateByAngle)curObjSpeed.curFigSet.__ul.hidden = true;
@@ -616,22 +630,24 @@ App.utils = {
             var objPos = obj.position;
             /*for all chides*/
             for (var i = 0; i < obj.children.length; i++) {
-                var curMeshPoj = obj.children[i].position;
-                obj.children[i].position.set(curMeshPoj.x - objPos.x, curMeshPoj.y - objPos.y, curMeshPoj.z - objPos.z);
+                //if(obj.children[i].category != 'tube'){
+                    var curMeshPoj = obj.children[i].position;
+                    obj.children[i].position.set(curMeshPoj.x - objPos.x, curMeshPoj.y - objPos.y, curMeshPoj.z - objPos.z);
+                //}
             }
             /*for 2d tubes*/
-            for (var i = 0; i < obj.linsArray.length; i++) {
+          /*  for (var i = 0; i < obj.linsArray.length; i++) {
                 var curMeshPoj = obj.linsArray[i].position;
                 obj.linsArray[i].position.set(curMeshPoj.x + objPos.x, curMeshPoj.y + objPos.y, curMeshPoj.z + objPos.z);
-            }
+            }*/
             /*for sprite*/
             var childScene2 = App.utils.types.webgl.scene2.children;
             for (var i = 0; i < childScene2.length; i++) {
                 if (childScene2[i].parentNam && childScene2[i].parentNam == obj.name) {
                     childScene2[i].position.set(objPos.x, objPos.y, objPos.z);
                     for (var n = 0; n < childScene2[i].children.length; n++) {
-                            var curPoj = childScene2[i].children[n].position;
-                            childScene2[i].children[n].position.set(curPoj.x - objPos.x, curPoj.y - objPos.x, curPoj.z - objPos.x);
+                        var curPoj = childScene2[i].children[n].position;
+                        childScene2[i].children[n].position.set(curPoj.x - objPos.x, curPoj.y - objPos.x, curPoj.z - objPos.x);
                     }
                 }
             }
@@ -753,6 +769,7 @@ App.utils = {
             var curObjAct = App.utils.interfaces.getObjByName(name);
             if (curObjAct) {
                 curObjAct.visible = val;
+                curObjAct.object2D.visible = val;
             } else {
                 alert('sorry');
             }
@@ -763,9 +780,9 @@ App.utils = {
                 if (type == '2D') {
                     var tip = listOb[i].tipsObject.position, cur = listOb[i].position, pl = webglObj._2dConsist.position;
                     listOb[i].oldPosit = new THREE.Vector3(cur.x + 0, cur.y + 0, cur.z + 0);
-                    listOb[i].rotation.set(Math.PI / 4,-Math.PI / 4,0);
+                    listOb[i].rotation.set(Math.PI / 4, -Math.PI / 4, 0);
 
-                    var absP = {x: _systemSize.x / 2, y: _systemSize.y / 2},scale_sys =100;//there is (0,0) of new system of coordinates
+                    var absP = {x: _systemSize.x / 2, y: _systemSize.y / 2}, scale_sys = 100;//there is (0,0) of new system of coordinates
                     if (!listOb[i].is2dCalc) {
                         var objPnts = listOb[i].listOfPointes, _system = webglObj._system, objSystmPstn = [];
                         for (var k = 0; k < objPnts.length; k++) {
@@ -777,8 +794,8 @@ App.utils = {
                             }
                         }
                         listOb[i].is2dCalc = Math.get2DFigureCenter(objSystmPstn);
-                        listOb[i].is2dCalc.x  =(listOb[i].is2dCalc.x/scale_sys)-absP.x;
-                        listOb[i].is2dCalc.y  =-(listOb[i].is2dCalc.y/scale_sys)+absP.y;
+                        listOb[i].is2dCalc.x = (listOb[i].is2dCalc.x / scale_sys) - absP.x;
+                        listOb[i].is2dCalc.y = -(listOb[i].is2dCalc.y / scale_sys) + absP.y;
                     }
                     listOb[i].position.set(listOb[i].is2dCalc.x, listOb[i].is2dCalc.y, 0);
                     listOb[i].tipsObject.updateMatrixWorld();
@@ -795,8 +812,8 @@ App.utils = {
                         listOb[i].position.set(last.x, last.y, last.z);
                         listOb[i].tipsObject.position.set(last.x, last.y, last.z);
                     }
-                    listOb[i].rotation.set(0,0,0)
-                    listOb[i].tipsObject.rotation.set(0,0,0)
+                    listOb[i].rotation.set(0, 0, 0)
+                    listOb[i].tipsObject.rotation.set(0, 0, 0)
                     listOb[i].remove(listOb[i].tipsObject);
                     webglObj._2dConsist.remove(listOb[i]);
                     webglObj.scene.add(listOb[i]);
@@ -808,21 +825,21 @@ App.utils = {
         },
         tipsArray: {
             tooltipVisible: function (name, val, objCal, lastEl) {
-                var curObjAct = App.utils.interfaces.getObjByName(name),webglObj =App.utils.types.webgl;
+                var curObjAct = name.name ? name : App.utils.interfaces.getObjByName(name), webglObj = App.utils.types.webgl;
                 if (curObjAct) {
                     if ((objCal && lastCheck.getEl(name, lastEl.types)) || ( curObjAct.visible )) {
-                        if(webglObj._dimension || lastEl.category =='point') {
-                            for (var i = 0; i < curObjAct.tipsArray.length; i++) {
-                                if (curObjAct.tipsArray[i].category == lastEl.category) {
-                                    curObjAct.tipsArray[i].visible = val;
-                                }
+                        //if(webglObj._dimension /*|| lastEl.category =='point'*/) {
+                        for (var i = 0; i < curObjAct.tipsArray.length; i++) {
+                            if (curObjAct.tipsArray[i].category == lastEl.category) {
+                                curObjAct.tipsArray[i].visible = val;
                             }
-                        }else{
-                            if(lastEl.category == 'square'){
-                                curObjAct.tipsObject.genSquare.visible = val;
-                            }else if(lastEl.category == 'angle'){
-                                curObjAct.tipsObject.corner2D.visible = val;
-                            }
+                        }
+                        if (lastEl.category == 'square') {
+                            curObjAct.object2D.genSquare.visible = val;
+                        } else if (lastEl.category == 'angle') {
+                            curObjAct.object2D.corner2D.visible = val;
+                        } else if (lastEl.category == 'point') {
+                            curObjAct.object2D.point2D.visible = val;
                         }
                     }
                 }
@@ -830,57 +847,50 @@ App.utils = {
         },//tables  behavior
         pointsArray: {
             toggleVisible: function (name, val) {
-                var curObjAct = App.utils.interfaces.getObjByName(name);
+                var curObjAct = name.name ? name : App.utils.interfaces.getObjByName(name);
                 if (curObjAct) {
-                    if (!curObjAct.dimensn) {
-                        for (var i = 0; i < curObjAct.pointsArray.length; i++) {
-                            curObjAct.pointsArray[i].visible = val;
-                        }
-                    } else {
-                        for (var i = 0; i < curObjAct.pointsArray2d.length; i++) {
-                            curObjAct.pointsArray2d[i].visible = val;
-                        }
+                    for (var i = 0; i < curObjAct.pointsArray.length; i++) {
+                        curObjAct.pointsArray[i].visible = val;
                     }
                 }
             },//visible
             changeColor: function (clr, name) {
                 var curObjAct = App.utils.interfaces.getObjByName(name);
                 if (curObjAct) {
+                    var mat = new THREE.MeshLambertMaterial({
+                        wireframe: true,
+                        color: 0xFFEB3B
+                    });
+                    mat.color.setHex('0x' + clr);
                     for (var i = 0; i < curObjAct.pointsArray.length; i++) {
-                        curObjAct.pointSphere = curObjAct.pointsArray[i];
-                        curObjAct.pointSphere.material = new THREE.MeshLambertMaterial({
-                            wireframe: true,
-                            color: 0xFFEB3B
-                        });
-                        curObjAct.pointSphere.material.color.setHex('0x' + clr);
-                        curObjAct.pointsArray2d[i].material = curObjAct.pointSphere.material;
+                        curObjAct.pointsArray[i].material = mat;
+                        curObjAct.pointsArray[i].dimensnP.material = mat;
                     }
                 }
             }//change color
         },//points behavior
         tubesArray: {
             toggleVisible: function (name, val) {
-                var curObjAct = App.utils.interfaces.getObjByName(name);
+                var curObjAct = name.name ? name : App.utils.interfaces.getObjByName(name);
                 if (curObjAct) {
-                    if (!curObjAct.dimensn) {
-                        for (var i = 0; i < curObjAct.tubesArray.length; i++) {
-                            curObjAct.tubesArray[i].visible = val;
-                        }
-                    } else {
-                        for (var i = 0; i < curObjAct.linsArray.length; i++) {
-                            curObjAct.linsArray[i].visible = val;
-                        }
+                    for (var i = 0; i < curObjAct.tubesArray.length; i++) {
+                        curObjAct.tubesArray[i].visible = val;
+                        curObjAct.object2D.tube2D.visible = val;
                     }
                 }
             },
             changeColor: function (clr, name) {
                 var curObjAct = App.utils.interfaces.getObjByName(name);
                 if (curObjAct) {
+                    var mat = new THREE.MeshLambertMaterial({color: 0xFFF176});
+                    mat.color.setHex('0x' + clr);
+                    ;
                     for (var i = 0; i < curObjAct.tubesArray.length; i++) {
-                        curObjAct.cutLine = curObjAct.tubesArray[i];
-                        curObjAct.cutLine.material = new THREE.MeshLambertMaterial({color: 0xFFF176});
-                        curObjAct.cutLine.material.color.setHex('0x' + clr);
-                        curObjAct.linsArray[i].material = curObjAct.cutLine.material;
+                        curObjAct.tubesArray[i].material = mat;
+                    }
+                    var cur = curObjAct.object2D.tube2D.children;
+                    for (var i = 0; i < cur.length; i++) {
+                        cur[i].material = mat;
                     }
                 }
             }
@@ -889,38 +899,45 @@ App.utils = {
             toggleVisible: function (name, val) {
                 var curObjAct = App.utils.interfaces.getObjByName(name);
                 if (curObjAct) {
-                    if (!curObjAct.dimensn) {
-                        curObjAct.sphere.visible = val;
-                    } else {
-                        curObjAct.circle2D.visible = val;
-                    }
+                    //if (!curObjAct.dimensn) {
+                    curObjAct.sphere.visible = val;
+                    curObjAct.circle2D.visible = val;
+                    //} else {
+                    //    curObjAct.circle2D.visible = val;
+                    //}
                 }
             },
             changeColor: function (clr, name) {
                 var curObjAct = App.utils.interfaces.getObjByName(name);
                 if (curObjAct) {
-                    if (!curObjAct.dimensn) {
-                        curObjAct.sphere.material = new THREE.MeshLambertMaterial({
-                            color: 0xffffff,
-                            transparent: true,
-                            opacity: 0.2
-                        });
-                        curObjAct.sphere.material.color.setHex('0x' + clr);
-                    } else {
-                        curObjAct.circle2D.material = new THREE.MeshLambertMaterial({
-                            wireframe: true,
-                            color: 0xFFEB3B
-                        });
-                        curObjAct.circle2D.material.color.setHex('0x' + clr);
-                    }
+                    //if (!curObjAct.dimensn) {
+                    curObjAct.sphere.material = new THREE.MeshLambertMaterial({
+                        color: 0xffffff,
+                        transparent: true,
+                        opacity: 0.2
+                    });
+                    curObjAct.sphere.material.color.setHex('0x' + clr);
+                    curObjAct.circle2D.material = new THREE.MeshBasicMaterial({
+                        color: 0x76FF03,
+                        side: THREE.DoubleSide
+                    });
+                    curObjAct.circle2D.material.color.setHex('0x' + clr);
+                    //} else {
+                    //    curObjAct.circle2D.material = new THREE.MeshLambertMaterial({
+                    //        wireframe: true,
+                    //        color: 0xFFEB3B
+                    //    });
+                    //    curObjAct.circle2D.material.color.setHex('0x' + clr);
+                    //}
                 }
             }
         },//sphere behavior
         shape: {
-            toggleVisible: function (name) {
+            toggleVisible: function (name, val) {
                 var curObjAct = App.utils.interfaces.getObjByName(name);
                 if (curObjAct) {
-                    curObjAct.shape.visible ? curObjAct.shape.visible = false : curObjAct.shape.visible = true;
+                    curObjAct.shape.visible = val;
+                    curObjAct.shape2D.visible = val;
                 }
             },
             changeColor: function (clr, name) {
@@ -933,12 +950,14 @@ App.utils = {
                         opacity: 0.2
                     });
                     curObjAct.shape.material.color.setHex('0x' + clr);
+                    curObjAct.shape2D.material = curObjAct.shape.material;
                 }
             },
             changeOpacity: function (val, name) {
                 var curObjAct = App.utils.interfaces.getObjByName(name);
                 if (curObjAct) {
                     curObjAct.shape.material.opacity = val;
+                    curObjAct.shape2D.material.opacity = val;
                 }
             }//opacity for shape
         }//shape behavior
@@ -1010,7 +1029,7 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
         };
         if (vBegn != vEnd) {
             var truba = objOfScene.helpers.getTubeByPoint(vBegn, vEnd, false, flag);
-            if (!truba.visible) {
+            if ( !truba.visible) {
                 if (!flag) {
                     truba.geometry = App.utils.interfaces.tubeLineGeometry(vBegn, vBegn, flag);
                     truba.visible = true;
@@ -1086,6 +1105,7 @@ App.rebuildNodes = function (numer) {
     objOfScene.linesArray = [];
     objOfScene.tubesArray = [];
     objOfScene.linsArray = [];
+    objOfScene.lins2DArray = [];
     objOfScene.dimensn = App.utils.types.webgl.dimensn;
     objOfScene.isAlreadySetNewGlobalPos = false;
     objOfScene.isAnimateObject = true;
@@ -1105,13 +1125,30 @@ App.rebuildNodes = function (numer) {
     objOfScene.name = objName;
     //objOfScene.visible=false;
     objOfScene.tipsObject = new THREE.Object3D();
-    objOfScene.tipsObject.corner2D = new THREE.Object3D();
-    objOfScene.tipsObject.corner2D.visible=false;
-    objOfScene.tipsObject.corner2D.category='corner2D';
-    objOfScene.tipsObject.corner2D.updateMatrixWorld();
-    objOfScene.tipsObject.add( objOfScene.tipsObject.corner2D);
     objOfScene.tipsObject.parentNam = objName;
-    objOfScene.listOf2dCord =[];
+    //2d
+    objOfScene.object2D = new THREE.Object3D();
+    //corner
+    objOfScene.object2D.corner2D = new THREE.Object3D();
+    objOfScene.object2D.corner2D.visible = false;
+    objOfScene.object2D.corner2D.category = 'corner2D';
+    objOfScene.object2D.corner2D.updateMatrixWorld();
+    objOfScene.object2D.add(objOfScene.object2D.corner2D);
+    //points
+    objOfScene.object2D.point2D = new THREE.Object3D();
+    objOfScene.object2D.point2D.category = 'point2D';
+    objOfScene.object2D.point2D.updateMatrixWorld();
+    objOfScene.object2D.add(objOfScene.object2D.point2D);
+    //tubes
+    objOfScene.object2D.tube2D = new THREE.Object3D();
+    objOfScene.object2D.tube2D.category = 'tube2D';
+    objOfScene.object2D.tube2D.updateMatrixWorld();
+    objOfScene.object2D.add(objOfScene.object2D.tube2D);
+    //square
+    objOfScene.object2D.genSquare = {};
+
+    webglObj._2dConsist.add(objOfScene.object2D);
+    objOfScene.listOf2dCord = [];
     webglObj.scene.add(objOfScene);
     webglObj.scene2.add(objOfScene.tipsObject);
     /**
@@ -1129,11 +1166,10 @@ App.rebuildNodes = function (numer) {
             var isbig = number.toString().length > 3, littleR = isbig ? 0.08 : 0.1;
             aveageNum = Math.average(number), radiusOfMainSphere = Math.sphereRadius(number, aveageNum);
 
-            for(var i=0;i<resArr.length;i++){
-                objOfScene.listOf2dCord.push(resArr[i][0]+''+resArr[i][1]+''+resArr[i][2])
+            for (var i = 0; i < resArr.length; i++) {
+                objOfScene.listOf2dCord.push(resArr[i][0] + '' + resArr[i][1] + '' + resArr[i][2])
             }
-            objOfScene.listOf2dCord = App.rebuild2D.get2DCoordinat( objOfScene.listOf2dCord);
-            console.log( objOfScene.listOf2dCord);
+            objOfScene.listOf2dCord = App.rebuild2D.get2DCoordinat(objOfScene.listOf2dCord);
 
             $.each(resArr, function (key, node) {
                 var geometry = new THREE.SphereGeometry(littleR, 32, 32);
@@ -1161,18 +1197,15 @@ App.rebuildNodes = function (numer) {
                     color: 0x9012e8, side: THREE.DoubleSide
                 }));
                 circle.category = 'point';
-                //circle.visible = false;
-                circle.rotation.x = -Math.PI / 4;
-                circle.rotation.y = Math.PI / 5;
-                //circle.position.copy(objOfScene.pointSphere.position);
-
-                objOfScene.pointsArray2d.push(circle);
-                //objOfScene.add(circle);
-                //webglObj._plate.add(circle);
-                webglObj._2dConsist.add(circle);
+                var sprite = objOfScene.Sprite.clone();
+                objOfScene.object2D.point2D.add(sprite);
+                objOfScene.object2D.point2D.add(circle);
                 objOfScene.pointSphere.dimensnP = circle;
                 var cur = objOfScene.listOf2dCord[key];
-                if(cur)circle.position.set(cur.x,cur.y,0);
+                if (cur) {
+                    circle.position.set(cur.x, cur.y, cur.z);
+                    sprite.position.set(cur.x + 0.1, cur.y + 0.1, cur.z);
+                }
                 circle.updateMatrixWorld();
 
             });
@@ -1209,9 +1242,9 @@ App.rebuildNodes = function (numer) {
              }
              }
              };*/
-            var id_tub = 0,lastObj= objectsForConnect.length-2;
+            var id_tub = 0, lastObj = objectsForConnect.length - 2;
             while (objectsForConnect.length) {
-                var currentObject = objectsForConnect.shift(),is2D = false;
+                var currentObject = objectsForConnect.shift(), is2D = false;
                 newObh.push(currentObject);
                 $.each(objectsForConnect, function (key, nextObject) {
                     var tubeMaterial = new THREE.MeshNormalMaterial();
@@ -1231,11 +1264,11 @@ App.rebuildNodes = function (numer) {
                         color: 0x0000ff, side: THREE.DoubleSide
                     }));
                     line.updateMatrixWorld();
-                    line.visible = false;
-                    if(!is2D || lastObj == key){
-                        lastObj = false;
-                        line.is2D = is2D=true;
-                    }
+                    //line.visible = false;
+                    //if(!is2D || lastObj == key){
+                    //    lastObj = false;
+                    //    line.is2D = is2D=true;
+                    //}
 
                     line.tube = objOfScene.tube;
                     line.id_tub = id_tub++;
@@ -1244,6 +1277,21 @@ App.rebuildNodes = function (numer) {
                 });
             }
 
+            //for 2d
+            var str = objOfScene.listOf2dCord[objOfScene.listOf2dCord.length - 1],
+                mat = new THREE.LineBasicMaterial({
+                color: 0x0000ff, side: THREE.DoubleSide
+            });
+            for (var i = 0; i < objOfScene.listOf2dCord.length; i++) {
+                var cur = objOfScene.listOf2dCord[i];
+                var geometry = new THREE.Geometry();
+                geometry.vertices.push(new THREE.Vector3(str.x, str.y, str.z));
+                geometry.vertices.push(new THREE.Vector3(cur.x, cur.y, cur.z));
+                var line = new THREE.Line(geometry, mat);
+                line.updateMatrixWorld();
+                objOfScene.object2D.tube2D.add(line);
+                str = cur;
+            }
         },// draw tubes on screen
         drawCircle: function (number) {
             var circleCenter = aveageNum ? aveageNum : Math.average(number),
@@ -1256,25 +1304,33 @@ App.rebuildNodes = function (numer) {
                     side: THREE.DoubleSide
                 });
             objOfScene.radiousObj = radius;
-            objOfScene.circle2D = new THREE.Mesh(new THREE.RingGeometry(radius + 0.01, radius, 32), new THREE.MeshBasicMaterial({
+            var pos2d = Math.get2DFigureCenter(objOfScene.listOf2dCord);
+            pos2d.z = objOfScene.listOf2dCord[0].z;
+            var radious2d = Math.getDistBtwTwoPoints(pos2d, objOfScene.listOf2dCord[0]);
+            objOfScene.circle2D = new THREE.Mesh(new THREE.RingGeometry(radious2d + 0.01, radious2d, 32), new THREE.MeshBasicMaterial({
                 color: 0x9012e8, side: THREE.DoubleSide
             }));
             objOfScene.circle2D.visible = false;
-            objOfScene.circle2D.rotation.x = -Math.PI / 4;
-            objOfScene.circle2D.rotation.y = Math.PI / 5;
+            //objOfScene.circle2D.rotation.x = -Math.PI / 4;
+            //objOfScene.circle2D.rotation.y = Math.PI / 5;
+            objOfScene.circle2D.updateMatrixWorld();
             objOfScene.sphere = new THREE.Mesh(geometrySphere, materialSphere);
             objOfScene.sphere.visible = false;
             objOfScene.sphere.renderOrder = 2;
             objOfScene.add(objOfScene.sphere);
-            objOfScene.add(objOfScene.circle2D);
+            //objOfScene.add(objOfScene.circle2D);
+            objOfScene.object2D.add(objOfScene.circle2D);
+
+
             if (number.toString().length > 3) {
                 objOfScene.sphere.position.set(sphereCenter.c_xy, sphereCenter.c_xy, sphereCenter.c_z);
-                objOfScene.circle2D.position.set(sphereCenter.c_xy, sphereCenter.c_xy, sphereCenter.c_z);
+                //objOfScene.circle2D.position.set(sphereCenter.c_xy, sphereCenter.c_xy, sphereCenter.c_z);
             }
             else {
                 objOfScene.sphere.position.set(circleCenter, circleCenter, circleCenter);
-                objOfScene.circle2D.position.set(circleCenter, circleCenter, circleCenter);
+                //objOfScene.circle2D.position.set(circleCenter, circleCenter, circleCenter);
             }
+            objOfScene.circle2D.position.set(pos2d.x, pos2d.y, objOfScene.listOf2dCord[0].z);
         },// draw sphere on screen
         drawShape: function (resArr, num) {
             if (resArr.length > 1) {
@@ -1292,6 +1348,14 @@ App.rebuildNodes = function (numer) {
                 objOfScene.shape = objOfScene.shapeObj.children[0];
                 //console.log(objOfScene.shape);
                 objOfScene.add(objOfScene.shapeObj);
+
+                //2d
+                var geometry = App.utils.interfaces.createMultipointPolygon(objOfScene.listOf2dCord, 3);
+                objOfScene.shapeObj2d = THREE.SceneUtils.createMultiMaterialObject(new THREE.ConvexGeometry(geometry.vertices), materials);
+                objOfScene.shapeObj2d.castShadow = true;
+                objOfScene.shapeObj2d.receiveShadow = false;
+                objOfScene.shape2D = objOfScene.shapeObj2d.children[0];
+                objOfScene.object2D.add(objOfScene.shape2D);
             }
         },// draw shape on screen
         drawCorners: function (objectsForConnect) {
@@ -1611,6 +1675,10 @@ App.rebuildNodes = function (numer) {
                 objectsForConnect.push(objOfScene.pointSphere);
             }
 
+            for (var i = 0; i < objOfScene.linsArray.length; i++) {
+                objOfScene.remove(objOfScene.linsArray[i]);
+            }
+
         },
         drawAngles: function (arr) {
             var corneresOfObj = [], newArr, index = 0, correctSumAngle, eps = 2;
@@ -1868,10 +1936,10 @@ App.rebuildNodes = function (numer) {
             }, obj.text_s);
             objOfScene.Sprite.position.set(obj.position.x, obj.position.y, obj.position.z);
             objOfScene.Sprite.category = obj.category;
-            objOfScene.Sprite.visible = obj.id2D?true:false;
-            if(obj.id2D){
-                objOfScene.tipsObject.corner2D.add(objOfScene.Sprite);
-            }else{
+            objOfScene.Sprite.visible = obj.id2D ? true : false;
+            if (obj.id2D) {
+                objOfScene.object2D.corner2D.add(objOfScene.Sprite);
+            } else {
                 objOfScene.tipsArray.push(objOfScene.Sprite);
                 objOfScene.tipsObject.add(objOfScene.Sprite);
             }
@@ -2173,29 +2241,31 @@ App.rebuildNodes = function (numer) {
             //draw 2d plate
             objOfScene.updateMatrixWorld();
             //objOfScene.rotation.set(0,0 ,0 );
-            App.rebuild2D.addFigure(resArr);
-            App.utils.types.webgl.listObjOfScene.push(objOfScene);
-            //App.utils.interfaces.translateAllChildrenBySphereCenter(objOfScene);
-            //objOfScene.rotation.x = objOfScene.tipsObject.rotation.x =  Math.PI/4;
-            //objOfScene.rotation.y = objOfScene.tipsObject.rotation.y = -Math.PI/4;
-            //objOfScene.rotation.z   = Math.PI/2;
+            //App.rebuild2D.addFigure(resArr);
+
             /*if (number.toString().length ==4) {
              this.drawCorners(d);
              }*/
+
             if (number.toString().length == 3) {
                 this.getIntersectPoints(d);
-                if (webglObj._dimension) {
-                    //App.utils.interfaces.changeDimension(false);
-                    //this.effects.disableMaterials();
-                    //this.startEffect(objOfScene);
-                } else {
-                    App.utils.interfaces.setView('2D');
-                }
             }
+            App.utils.types.webgl.listObjOfScene.push(objOfScene);
+
             if (webglObj._dimension) {
                 App.utils.types.webgl.camera.lookAt(objOfScene.sphere.position);
+                App.utils.types.webgl.camera.position.set(20,20,20);
                 App.utils.types.cameraDistance = 20;
+                //App.utils.interfaces.changeDimension(false);
+                //this.effects.disableMaterials();
+                if (number.toString().length == 3) {
+                    this.startEffect(objOfScene);
+                }
+            } else {
+                //App.utils.interfaces.setView('2D');
             }
+
+
         }//start drawing
     };
 
@@ -2363,27 +2433,12 @@ App.rebuild2D = {
         var texture = new THREE.Texture(webglObj._2dTexture);
         texture.needsUpdate = true;
         texture.minFilter = THREE.LinearFilter;
-
         var mat = new THREE.MeshBasicMaterial({
-            //color:'#000000',
-            //shading: THREE.SmoothShading,
-            //vertexColors: false,
-            //blending:     THREE.AdditiveBlending,
             map: texture,
-            //reflectivity: 0.05,
-            //bumpMap: texture,
-            //bumpScale: 10,
             side: THREE.DoubleSide
         });
-        webglObj._plate = new THREE.Mesh(new THREE.PlaneGeometry(29, 14, 32), mat);
-        //var spriteMaterial = new THREE.SpriteMaterial({
-        //        map: texture, useScreenCoordinates: false, rotation: 0,transparent:true,opacity:0.7
-        //    });
-        //webglObj._plate = new THREE.Sprite(spriteMaterial);
-        //webglObj._plate.scale.multiplyScalar(2);
+        webglObj._plate = new THREE.Mesh(new THREE.PlaneGeometry(_systemSize.x, _systemSize.y, 32), mat);
         webglObj._plate.updateMatrixWorld();
-        //webglObj._plate.position.set(webglObj._dftControl.x, webglObj._dftControl.y, -45);
-        //webglObj._plate.rotation.y = Math.PI;
         webglObj._2dConsist = new THREE.Object3D();
         webglObj._2dConsist.updateMatrixWorld();
         webglObj._2dConsist.position.set(webglObj._dftControl.x, webglObj._dftControl.y, -45);
@@ -2406,9 +2461,9 @@ App.rebuild2D = {
         ctx.font = "10px Verdana";
         ctx.fillStyle = "rgba(233, 1, 233, 1)";
         var _system = [];
-        var rows = 1500, rowWidth = 1000, stepI = 150, stepJ = 100, curJ = 0, el = 0;
+        var rows = 2500, rowWidth = 1000, stepI = 231, stepJ = 162, curJ = 0, el = 0;
         for (var i = 10; i < rows; i += stepI) {
-            for (var j = curJ; j < 2 * (rowWidth) + curJ; j += 20) {
+            for (var j = curJ; j < 3 * (rowWidth) + curJ; j += 30) {
                 var apendStr = '';
                 if (i == 10) {
                     if (el.toString().length == 1) {
@@ -2485,19 +2540,18 @@ App.rebuild2D = {
         //});
         webglObj._plate.material = mat;
     },
-    get2DCoordinat:function(arr){
+    get2DCoordinat: function (arr) {
 
-        var  appObj = App.utils.types, webglObj = appObj.webgl, _system = webglObj._system, scale_html = 100,objSystmPstn=[],
-            plateS = appObj._2dPlateSize;
-        var absP = {x: plateS.x / 2, y: plateS.y / 2},scale_sys =100;//there is (0,0) of new system of coordinates
+        var appObj = App.utils.types, webglObj = appObj.webgl, _system = webglObj._system, scale_html = 100, objSystmPstn = [],
+            plateS = appObj._2dPlateSize ;
+        var absP = {x: plateS.x / 2, y: plateS.y / 2}, scale_sys = 100;//there is (0,0) of new system of coordinates
 
-        console.log(appObj._2dPlateSize);
         for (var k = 0; k < arr.length; k++) {
             for (var j = 0; j < _system.length; j++) {
                 if (arr[k] == _system[j].name) {
-                   var coor = {z:-44.5};
-                    coor.x =(_system[j].pos.x/scale_sys)-absP.x;
-                    coor.y =(_system[j].pos.y/scale_sys)+absP.y;
+                    var coor = {z: 0.005};
+                    coor.x = (_system[j].pos.x / scale_sys) - absP.x + 0.1;
+                    coor.y = absP.y - (_system[j].pos.y / scale_sys) + 0.05;
                     objSystmPstn.push(coor);
                     break;
                 }
@@ -2694,7 +2748,7 @@ App.guiObj = {
 
         this.interfaces.addGenerationFold();
         this.interfaces.generalSetFolders(this.folders.generalSet, App.guiObj.generateParameters);
-        //this.interfaces.keysFolderGenerate(this.folders.keysFolder);
+        this.interfaces.keysFolderGenerate(this.folders.keysFolder);
         this.folders.keysFolder.__ul.hidden = true;
 
         $(".hue-field").width(10);
@@ -2727,14 +2781,14 @@ App.guiObj = {
             generationFolder.add(generateParameters, 'effects', ['building', 'centeringSphere', 'centeringTriangle', 'shaders']).onChange(function (val) {
                 App.utils.types.animaEffect = val;
             });
-            generationFolder.add(generateParameters, 'dimensn', ['3D', '2D']).name('Dimensions').onChange(function (val) {
-                var webglObj = App.utils.types.webgl;
-                if (val == '2D') {
-                    webglObj.dimensn = true;
-                } else {
-                    webglObj.dimensn = false;
-                }
-            });
+            /*  generationFolder.add(generateParameters, 'dimensn', ['3D', '2D']).name('Dimensions').onChange(function (val) {
+             var webglObj = App.utils.types.webgl;
+             if (val == '2D') {
+             webglObj.dimensn = true;
+             } else {
+             webglObj.dimensn = false;
+             }
+             });*/
             generationFolder.add(generateParameters, 'moreThan3').name('> 3-digit number').onChange(function (flag) {
                 generationFolder.__controllers.slice(generationFolder.__controllers.indexOf(numberField), 1);
                 $('.cr.number.has-slider').eq(0).remove();
@@ -2839,12 +2893,12 @@ App.guiObj = {
             curFigure.add(editParameters.figure, 'displayCircle').name('Display Sphere').onChange(function (val) {
                 App.utils.interfaces.sphere.toggleVisible(nam, val);
             });
-            curFigure.add(editParameters.figure, 'fillFigure').name('Display Figure').onChange(function () {
-                App.utils.interfaces.shape.toggleVisible(nam);
+            curFigure.add(editParameters.figure, 'fillFigure').name('Display Figure').onChange(function (val) {
+                App.utils.interfaces.shape.toggleVisible(nam, val);
             });
-            curFigure.add(editParameters.figure, 'twoDimensions').name('2d Dimension').onChange(function (val) {
-                App.utils.interfaces.changeDimension(nam, val);
-            });
+            /*curFigure.add(editParameters.figure, 'twoDimensions').name('2d Dimension').onChange(function (val) {
+             App.utils.interfaces.changeDimension(nam, val);
+             });*/
             curFigure.add(editParameters, 'visible').name('Global Visible').onChange(function (val) {
                 App.utils.interfaces.tipsArray.tooltipVisible(nam, val, true, {
                     types: lastCheck.point,
@@ -2880,7 +2934,7 @@ App.guiObj = {
                 App.guiObj.interfaces.removeFigure(nam);
             });
             this.addRevolModeData(nam);
-            this.addFigureInfo(nam);
+            if (number.toString().length == 3)this.addFigureInfo(nam);
             $(".hue-field").width(10); // костыль, чтоб не съезжала палитра addColor
         },
         addRevolModeData: function (nameFigure) {
@@ -3060,32 +3114,33 @@ App.guiObj = {
         },
         addFigureInfo: function (name) {
             var anglesFolder = App.guiObj.folders.anglesFolder.addFolder(name), figureSet = null, figData = {
-                square: null,
-                angle: null,
-                triangleSquare: null
-            },
-                types = App.utils.types,listOfPoints = types.listOfPoints,lastObjAd = types.webgl.listObjOfScene[types.webgl.listObjOfScene.length-1],
-                isNeedR = (lastObjAd.listOfPointes.length >3);
+                    square: null,
+                    angle: null,
+                    triangleSquare: null
+                },
+                types = App.utils.types, listOfPoints = types.listOfPoints, lastObjAd = types.webgl.listObjOfScene[types.webgl.listObjOfScene.length - 1],
+                isNeedR = (lastObjAd.listOfPointes.length > 3);
             if (listOfPoints) {
-                figureSet = Math.figureDataByPoints(listOfPoints);
+                figureSet = Math.figureDataByPoints(listOfPoints, lastObjAd.listOf2dCord);
                 figData.square = figureSet.square.toString();
                 /*for 2d*/
-                if(isNeedR) {
-                    var sprite = App.utils.interfaces.createSprite(figData.square + 'mm\xB2', {
-                        fontsize: 14,
-                        borderThickness: 1,
-                        canvasWidth: 2,
-                        canvasHeight: 45,
-                        shift: {x: 8.5, y: 11},
-                        backColor: "rgba(0, 200, 0, 1)"
-                    });
-                    var objC = lastObjAd.sphere.position;
-                    sprite.position.set(objC.x, objC.y, objC.z);
-                    sprite.category = 'square';
-                    sprite.visible = false;
-                    lastObjAd.tipsObject.add(sprite);
-                    lastObjAd.tipsObject.genSquare = sprite;
-                }
+                //if (isNeedR) {
+                var sq = figData.square.toString();
+                var sprite = App.utils.interfaces.createSprite(sq.substr(0, sq.indexOf(".") + 2) + 'mm\xB2', {
+                    fontsize: 14,
+                    borderThickness: 1,
+                    canvasWidth: 2,
+                    canvasHeight: 45,
+                    shift: {x: 8.5, y: 11},
+                    backColor: "rgba(0, 200, 0, 1)"
+                });
+                var objC = lastObjAd.circle2D.position;
+                sprite.position.set(objC.x, objC.y, objC.z);
+                sprite.category = 'square';
+                sprite.visible = false;
+                lastObjAd.object2D.add(sprite);
+                lastObjAd.object2D.genSquare = sprite;
+                //}
 
                 anglesFolder.add(figData, 'square').name('General Square').__input.disabled = true;
                 var triangleSq = anglesFolder.addFolder('Square SubFigures')
@@ -3100,24 +3155,25 @@ App.guiObj = {
                     figData.angle = figureSet.angle[i] + '\xB0';
                     mainAngles.add(figData, 'angle').name('Angle ' + i).__input.disabled = true;
                     /*add info for 2d */
-                    if(isNeedR) {
-                        lastObjAd.helpers.createSpriteForObj({
-                            text_f: figData.angle + '/',
-                            text_s: figData.angle + '/',
-                            position: figureSet.anglePos[i],
-                            category: 'angle2D',
-                            backColor: "rgba(255, 255, 0, 1)",
-                            canvasHeight: 39,
-                            fontsize: 12,
-                            shift: {x: 8.5, y: 11},
-                            id2D: true
-                        });
-                    }
+                    //if (isNeedR) {
+                    //var curP = figureSet.anglePos[i];
+                    lastObjAd.helpers.createSpriteForObj({
+                        text_f: figData.angle + '',
+                        text_s: figureSet.angle[i] + '.0000000\xB0',
+                        position: figureSet.anglePos[i],
+                        category: 'angle',
+                        backColor: "rgba(255, 255, 0, 1)",
+                        canvasHeight: 39,
+                        fontsize: 12,
+                        shift: {x: 8.5, y: 11},
+                        id2D: true
+                    });
+                    //}
                 }
                 //console.log( lastObjAd.tipsObject,figureSet.anglePos[0]);
-               /* if (figureSet.angle.length == 3) {
-                    App.guiObj.listOgAngles.pop();
-                }*/
+                /* if (figureSet.angle.length == 3) {
+                 App.guiObj.listOgAngles.pop();
+                 }*/
                 for (var i = 0; i < App.guiObj.listOgAngles.length; i++) {
                     figData.angle = App.guiObj.listOgAngles[i];
                     angles.add(figData, 'angle').name('Angle ' + i).__input.disabled = true;
@@ -3304,30 +3360,35 @@ App.numberWorker = {
 /**
  * Math calculation
  */
-Math.figureDataByPoints = function (arr) {
-    var squareFig = 0, squareFigs = [], sumPoints = 0, angles = [],anglesPos = [], cur, arrLast = arr[arr.length - 1], prev = arr[0];
+Math.figureDataByPoints = function (arr, arr2D) {
+    var squareFig = 0, squareFigs = [], sumPoints = 0, angles = [], anglesPos = [],
+        cur, cur2D,
+        arrLast = arr[arr.length - 1], arrLast2D =  arr2D?arr2D[arr2D.length - 1]:[],
+        prev = arr[0], prev2D = arr2D?arr2D[0]:[];
     if (arr.length > 2) {
         for (var i = 1; i < arr.length && i + 1 < arr.length; i++) {
             cur = arr[i];
+            cur2D =  arr2D?arr2D[i]:[];
             squareFigs.push(this.getSquareByPoints(arr[0], cur, arr[i + 1]));
             squareFig += squareFigs[squareFigs.length - 1];
-            var p1 = prev,p2 = arr[i + 1],p3=cur;
-            angles.push(this.round(Math.getCornerBtwTwoVercorsAndIntrsctinPnt(p1,p2,p3 , false, true)));
-            anglesPos.push(Math.getPositionForValueOfCorner(p2,p3,p1,false));
+            var p1 = prev, p2 = arr[i + 1], p3 = cur;
+            angles.push(this.round(Math.getCornerBtwTwoVercorsAndIntrsctinPnt(p1, p2, p3, false, true)));
+            if(arr2D) anglesPos.push(Math.getPositionForValueOfCorner(arr2D[i + 1], cur2D, prev2D, false));
             prev = arr[i];
+            prev2D = arr2D?arr2D[i]:[];
         }
 //    sumPoints += arrLast[0] + arrLast[1] + arrLast[2];
-        var p1 = arr[arr.length - 2],p2 = arr[0],p3=arrLast;
+        var p1 = arr[arr.length - 2], p2 = arr[0], p3 = arrLast;
         angles.push(this.round(Math.getCornerBtwTwoVercorsAndIntrsctinPnt(p1, p2, p3, false, true)));
-        anglesPos.push(Math.getPositionForValueOfCorner(p2,p3,p1,false));
-        var p1 = arr[1],p2 = arrLast,p3=arr[0];
-        angles.push(this.round(Math.getCornerBtwTwoVercorsAndIntrsctinPnt(p1, p2, p3, false, true)));
-        anglesPos.push(Math.getPositionForValueOfCorner(p2,p3,p1,false));
+        if(arr2D)anglesPos.push(Math.getPositionForValueOfCorner(arr2D[0], arrLast2D, arr2D[arr2D.length - 2], false));
+        var p1 = arr[1], p2 = arrLast, p3 = arr[0];
+       angles.push(this.round(Math.getCornerBtwTwoVercorsAndIntrsctinPnt(p1, p2, p3, false, true)));
+        if(arr2D)anglesPos.push(Math.getPositionForValueOfCorner(arrLast2D, arr2D[0], arr2D[1], false));
     } else {
         angles.push(0);
     }
     sumPoints += arr[0][0] + arr[0][1] + arr[0][2];
-    return {squareFigs: squareFigs, square: squareFig, sum: sumPoints, angle: angles,anglePos:anglesPos};
+    return {squareFigs: squareFigs, square: squareFig, sum: sumPoints, angle: angles, anglePos: anglesPos};
 };//return squares of all figures, square of main figure,sum of points, angles
 Math.getSquareByPoints = function (p1, p2, p3) {
     var ab = (p1 instanceof Array && p2  instanceof Array),
@@ -3366,28 +3427,28 @@ Math.getCornerBtwTwoVercorsAndIntrsctinPnt = function (vector1, vector2, point, 
     return corner;
 }//get corner vy 3 points
 Math.getPositionForValueOfCorner = function (point1, intersectPoint, point2, endInterPoint, sqre) {
-    var i = 0, vector1 = this.getAverageValueOfHighForTriangle(point1, point2),count = endInterPoint?3:2;
+    var i = 0, vector1 = this.getAverageValueOfHighForTriangle(point1, point2), count = endInterPoint ? 3 : 2;
     var returnVect = this.getAverageValueOfHighForTriangle(vector1, intersectPoint);
     if (sqre) return returnVect;
     while (i++ < count) {
         returnVect = this.getAverageValueOfHighForTriangle(returnVect, intersectPoint);
     }
-   /* if (endInterPoint) {
-        returnVect = this.getAverageValueOfHighForTriangle(returnVect, intersectPoint);
-    }*/
+    /* if (endInterPoint) {
+     returnVect = this.getAverageValueOfHighForTriangle(returnVect, intersectPoint);
+     }*/
     return returnVect;
 }//get position for tables
 Math.getAverageValueOfHighForTriangle = function (vector1, intersectPoint) {
-    var returnVect = {}, ab = (vector1 instanceof Array ),ba=( intersectPoint  instanceof Array),
-   p1 = ab?vector1[0]:vector1.x,
-   p2 = ab?vector1[1]:vector1.y,
-   p3 = ab?vector1[2]:vector1.z,
-   d1 = ba?intersectPoint[0]:intersectPoint.x,
-   d2 = ba?intersectPoint[1]:intersectPoint.y,
-   d3 = ba?intersectPoint[2]:intersectPoint.z;
-    returnVect.x = (p1+d1) / 2;
-    returnVect.y = (p2+d2)/ 2;
-    returnVect.z = (p3+d3) / 2;
+    var returnVect = {}, ab = (vector1 instanceof Array ), ba = ( intersectPoint  instanceof Array),
+        p1 = ab ? vector1[0] : vector1.x,
+        p2 = ab ? vector1[1] : vector1.y,
+        p3 = ab ? vector1[2] : vector1.z,
+        d1 = ba ? intersectPoint[0] : intersectPoint.x,
+        d2 = ba ? intersectPoint[1] : intersectPoint.y,
+        d3 = ba ? intersectPoint[2] : intersectPoint.z;
+    returnVect.x = (p1 + d1) / 2;
+    returnVect.y = (p2 + d2) / 2;
+    returnVect.z = (p3 + d3) / 2;
     return returnVect;
 }//middle for hight of triangle
 Math.average = function (number) {
@@ -3522,7 +3583,10 @@ $(document).ready(function () {
             webglObj.cameraFixed = true;
             webglObj._2dConsist.visible = true;
         }
-        App.utils.interfaces.changeDimension(webglObj.dimensn);
+        /*  for(var i=0;i<listObj.length;i++){
+         App.utils.interfaces.changeDimension(false,false,listObj[i]);
+         }*/
+
     });
     $('#THREEJS canvas').css({position: 'relative', border: '3px solid white'});
     $('#THREEJS canvas').mousedown(function () {
