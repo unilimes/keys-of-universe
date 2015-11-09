@@ -1,0 +1,291 @@
+html, body{
+    /*overflow: hidden;*/
+    padding: 0;
+    margin: 0;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #F4F4F4;
+}
+#THREEJS{
+    position: relative;
+    /*top:0;*/
+    /*bottom: 0;*/
+    /*right: 0;*/
+    /*left:0;*/
+    z-index: 1;
+    padding-top:120px;
+    width:100%;
+    height:100%;
+    text-align: center;
+}
+#THREEJS canvas{
+    margin: auto;
+}
+#videoBack{
+    position: absolute;
+    top:0;
+    left:0;
+    width: 100%;
+    height:100%;
+    text-align: center;
+    z-index: -2;
+}
+video {
+    position: fixed;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    -webkit-transform: translateX(-50%) translateY(0);
+    transform: translateX(-50%) translateY(0);
+    /*background: url(../img/Circle-Animated-Loader-Gif-PSD.gif) no-repeat;*/
+    background-size: cover;
+}
+#play{
+    /*background-image: url("../img/start-button-icon-44464.png");*/
+    /*background-position: center;background-repeat: no-repeat;*/
+    /*background-attachment: fixed;*/
+    /*background-size: cover;*/
+    width:50px;
+    height:50px;
+    /*z-index: -1;*/
+    position: absolute;
+    top: 8px;
+    left: 50px;
+    cursor: pointer;
+    display: none;
+
+}
+#fond{
+    position: absolute;
+    width:100%;
+    height:100%;
+    background-color: #0a014c;
+    background-image: url("../img/b.png");
+    background-repeat: repeat;
+    z-index: 0;
+    text-align: center;
+}
+.imgF img,.imgFig img,.imgFig1 img,.imgFig3 img{
+    /*width:100%;*/
+    position:relative;
+    height:100%;
+    background-color:#0a014c ;
+
+}
+.imgF{
+    position: relative;
+    margin: auto;
+    text-align: center;
+    top:0px;
+    left:10%;
+    height: 120px;
+}
+.imgFig{
+    top:0px;
+    position: relative;
+    height: 120px;
+    float:left;
+}
+.imgFig1{
+    top:0px;
+    position: relative;
+    height: 120px;
+    float:right;
+}
+.imgFig3{
+    top:0px;
+    position: relative;
+    height: 120px;
+    text-align: center;
+}
+#fond h1{
+color:#ffffff;
+    position: relative;
+    font-size: 65px;
+}
+@media only screen and (min-width: 0px) and (max-width: 990px) {
+    #fond h1{
+        font-size: 25px;
+    }
+}
+.dg.ac{
+    z-index: 10!important;
+}
+#preloade{
+    /*background-image: url("../img/Circle-Animated-Loader-Gif-PSD.gif");*/
+    /*background-position: center;*/
+    /*background-repeat: no-repeat;*/
+    /*background-attachment: fixed;*/
+    /*background-size: cover;*/
+    width:100%;
+    height:100%;
+    z-index: 100;
+    position: absolute;
+    background: #f5f5f5;
+}
+
+#play img{
+    position: relative;
+    width:100%;
+    height:100%;
+}
+#gui { position: absolute; }
+
+.accordion-toggle {
+    color: white;
+}
+
+div#collapseMenu{
+    max-height: 613px;
+    /* height: 100%; */
+}
+
+.generator {
+    background:#000000;
+    text-align: center;
+    color: #ffffff;
+}
+
+
+.generate-button, .coord-creator {
+    color: #000000;
+    background:#ffffff;
+    font-weight: bold;
+}
+
+.main-navbar{
+    display: none;
+    overflow: hidden;
+    overflow-y: scroll;
+    position: fixed;
+    left: 0;
+    top: 0;
+    text-align: center;
+    background-color: #000;
+    width: 276px;
+}
+
+.glyphicon-chevron-down, .glyphicon-chevron-up{
+    float: right;
+}
+.glyphicon-center{
+    float: none;
+}
+
+.panel-title, .accordion-toggle:hover, .accordion-toggle:focus {
+    color: #ffffff;
+}
+
+.eyeIcon{
+    /*width: 100%;*/
+    float: right;
+    height: 21px;
+
+}
+
+/*TABLE {*/
+    /*Цвет текста*/
+    /*color: white;*/
+/*}*/
+/*A {*/
+    /*Цвет ссылок*/
+    /*color: white;*/
+/*}*/
+/*A:visited {*/
+    /*Цвет посещенных ссылок #cecece*/
+    /*color: white;*/
+/*}*/
+/*A:active {*/
+    /*Цвет активных ссылок*/
+    /*color: #ffff00; */
+/*}*/
+.container_{
+    width: 150px!important;
+    position: fixed;
+    /*top: 2px;*/
+    /*left: 65px;*/
+    background-color:#0a014c ;
+    color: white;
+    z-index: 2;
+    padding: 1px;
+}
+
+.dg li.title,.dg li:not(.folder), .dg.main .close-button{
+    /*background-color: #ffffff!important;*/
+    color: #1D205F!important;;
+}
+.dg.main.taller-than-window .close-button {
+    border-top: 1px solid #ddd!important;
+}
+
+.dg.main .close-button {
+    background-color: #ccc!important;;
+}
+
+.dg.main .close-button:hover {
+    background-color: #ddd!important;;
+}
+
+.dg {
+    color: #555;
+    text-shadow: none !important;
+}
+
+.dg.main::-webkit-scrollbar {
+    background: #fafafa!important;;
+}
+
+.dg.main::-webkit-scrollbar-thumb {
+    background: #bbb!important;;
+}
+
+.dg li:not(.folder) {
+    background: #fafafa!important;;
+    border-bottom: 1px solid #ddd!important;;
+}
+
+.dg li.save-row .button {
+    text-shadow: none !important;
+}
+
+.dg li.title {
+    background: #e8e8e8 url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==) 6px 10px no-repeat!important;;
+}
+
+.dg .cr.function:hover,.dg .cr.boolean:hover {
+    background: #fff!important;;
+}
+
+/*.dg .c input[type=text] {
+    background: #e9e9e9!important;;
+}*/
+
+/*.dg .c input[type=text]:hover {
+    background: #eee!important;;
+}*/
+
+.dg .c input[type=text]:focus {
+    /*background: #eee!important;;*/
+    color: #555!important;;
+}
+
+.dg .c .slider {
+    background: #e9e9e9!important;;
+}
+
+.dg .c .slider:hover {
+    background: #eee!important;;
+}
+#test{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top:0 ;
+    left : 0;
+    z-index: -10;
+    overflow: auto;
+}

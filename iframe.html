@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head >
+    <meta charset="utf-8">
+
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/preload.css">
+    <!--<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">-->
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+
+    <!--<script src="http://webgl.unilimes.com/project/dhiru/vendor/jquery/jquery-1.10.2.min.js" type="text/javascript"></script>-->
+    <script src="assets/js/jquery.min.js" type="text/javascript"></script>
+    <!--<script src="http://webgl.unilimes.com/project/dhiru/vendor/threejs/js/three.min.js"></script>-->
+    <script src="assets/js/three.min.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+    <script src="assets/js/TrackballControls.js"></script>
+    <script src="assets/js/jscolor/jscolor.js"></script>
+    <script src="assets/js/dat.gui.js"></script>
+    <script src="assets/js/ConvexGeometry.js"></script>
+    <script src="assets/js/build/ColladaLoader.js"></script>
+    <!--<script src="assets/js/extra.js"></script>-->
+
+
+</head>
+<body>
+<!--<div class="heads"></div>-->
+<script type="x-shader/x-vertex" id="vertexshader">
+			uniform float amplitude;
+			attribute float size;
+			attribute vec3 customColor;
+
+			varying vec3 vColor;
+
+			void main() {
+
+				vColor = customColor;
+
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+
+				gl_PointSize = size;
+
+				gl_Position = projectionMatrix * mvPosition;
+
+			}
+		</script>
+
+<script type="x-shader/x-fragment" id="fragmentshader">
+			uniform vec3 color;
+			uniform sampler2D texture;
+
+			varying vec3 vColor;
+
+			void main() {
+
+				gl_FragColor = vec4( color * vColor, 1.0 );
+				gl_FragColor = gl_FragColor * texture2D( texture, gl_PointCoord );
+
+			}
+		</script>
+
+<script id="globeVertexShader" type="x-shader/x-vertex">
+			varying vec3 vNormal;
+			varying vec2 vUv;
+			void main() {
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0);
+				vNormal = normalize( normalMatrix * normal );
+				vUv = uv;
+			}
+		</script>
+
+<script id="globeFragmentShader" type="x-shader/x-fragment">
+			uniform sampler2D mapIndex;
+			uniform sampler2D lookup;
+			uniform sampler2D outline;
+			uniform float outlineLevel;
+			varying vec3 vNormal;
+			varying vec2 vUv;
+			void main() {
+
+				vec4 mapColor = texture2D( mapIndex, vUv );
+				float indexedColor = mapColor.x;
+				vec2 lookupUV = vec2( indexedColor, 0. );
+				vec4 lookupColor = texture2D( lookup, lookupUV );
+				float mask = lookupColor.x + (1.-outlineLevel) * indexedColor;
+				mask = clamp(mask,0.,1.);
+				float outlineColor = texture2D( outline, vUv ).x * outlineLevel;
+				float diffuse = mask + outlineColor;
+				gl_FragColor = vec4( vec3(diffuse), 1.  );
+				// gl_FragColor = vec4( lookupColor );
+				// gl_FragColor = vec4(texture2D( lookup, vUv ).xyz,1.);
+			}
+		</script>
+
+<div id="fond" >
+    <!--<h1><span style="background: #0a014c">Blueprint of the Universe</span></h1>-->
+    <!--<div class="imgF"><img src="assets/img/logo.png"></div>-->
+    <!--<div class="imgFig"><img src="assets/img/logo2.png"></div>-->
+    <!--<div class="imgFig1"><img src="assets/img/logo1.png"></div>-->
+    <div class="imgFig3"><img src="assets/img/logo3.png"></div>
+</div>
+<div id="videoBack">
+    <video id="myVideo" width="100" height="150"   autoplay loop  preload="none" >
+        <source src="assets/css/Intro Full HD.mp4" type="video/mp4" codecs="avc1.42E01E, mp4a.40.2" >
+        <source src="assets/css/Intro Full HD.webm" type='video/webm; codecs="vp8, vorbis"' />
+    </video>
+</div>
+<div  class="container_">
+    <div id="play">
+        <img id="im"src="assets/img/play.png">
+    </div>
+    <div id="form">
+    <form role="form" >
+        <div class="radio">
+            <label><input type="radio" name="optradio" value="2D">2D</label>
+        </div>
+        <div class="radio">
+            <label><input type="radio" name="optradio" value="3D" checked>3D</label>
+        </div>
+    </form>
+    </div>
+</div>
+<div id="THREEJS" >
+</div>
+<div id="test"></div>
+
+<div class="main-navbar">
+    <!--<div class="panel-group" id="accordion">-->
+    <div class="panel-heading accordion-toggle" data-toggle="collapse" data-parent="#accordion" href="#collapseMenu">
+        <h4 class="panel-title">
+            <div class="clickableTab row">
+                <div class="col-sm-10">Menu</div>
+                <div class="col-sm-2"><span class="glyphicon-top glyphicon glyphicon-chevron-up"></span></div>
+            </div>
+        </h4>
+    </div>
+    <div id="collapseMenu" class="panel-collapse collapse in">
+        <div class="accordion-toggle">
+            <table class="table">
+                <tr>
+                    <td class="panel-title ">
+                        <div class="clickableTab row">
+                            <a class="accordion-toggle col-sm-10"  data-toggle="collapse" data-parent="#accordion" href="#collapseItem1">Generation</a>
+                            <span class="glyphicon glyphicon-chevron-down col-sm-2" data-toggle="collapse" data-parent="#accordion" href="#collapseItem1"></span>
+                        </div>
+                        <div id="collapseItem1" class="panel-collapse collapse">
+                            <div class="row" ><div class="col-xs-12" style="text-align: left; font-size: 10px">Enter Coordinates</div></div>
+                            <div class="row">
+                                <div class="col-xs-5"><input class="form-control number-picker" maxlength="7" type="text" style="width:100%"/></div>
+                                <div class="col-xs-7"><input class="form-control coord-creator" type="button" style="width:100%" value="Get Coords"/></div>
+                            </div>
+                            <span>Coordinates:</span>
+                            <div id="coords"></div>
+                            <button class="generate-button form-control">Create!</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="panel-title ">
+                        <div class="clickableTab row">
+                            <a class="accordion-toggle col-sm-10"  data-toggle="collapse" data-parent="#accordion" href="#collapseItem2">Edit</a>
+                            <span class="glyphicon glyphicon-chevron-down col-sm-2" data-toggle="collapse" data-parent="#accordion" href="#collapseItem2"></span>
+                        </div>
+                        <div id="collapseItem2" class="panel-collapse collapse">
+                            <div id="figures"></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="panel-title">
+                        <div class="clickableTab row">
+                            <a class="accordion-toggle col-sm-10"  data-toggle="collapse" data-parent="#accordion" href="#collapseItem3">List of the Keys</a>
+                            <span class="glyphicon glyphicon-chevron-down col-sm-2" data-toggle="collapse" data-parent="#accordion" href="#collapseItem3"></span>
+                        </div>
+                        <div id="collapseItem3" class="panel-collapse collapse">
+
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="panel-title ">
+                        <div class="clickableTab row">
+                            <a class="accordion-toggle col-sm-10"  data-toggle="collapse" data-parent="#accordion" href="#collapseItem4">Angles and Surfaces</a>
+                            <span class="glyphicon glyphicon-chevron-down col-sm-2" data-toggle="collapse" data-parent="#accordion" href="#collapseItem4"></span>
+                        </div>
+                        <div id="collapseItem4" class="panel-collapse collapse">
+                            <h6>some text</h6>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="panel-title ">
+                        <div class="clickableTab row">
+                            <a class="accordion-toggle col-sm-10"  data-toggle="collapse" data-parent="#accordion" href="#collapseItem5">Revolution Mode</a>
+                            <span class="glyphicon glyphicon-chevron-down col-sm-2" data-toggle="collapse" data-parent="#accordion" href="#collapseItem5"></span>
+                        </div>
+                        <div id="collapseItem5" class="panel-collapse collapse">
+                            <h6>some text</h6>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="panel-title ">
+                        <div class="clickableTab row">
+                            <a class="accordion-toggle col-sm-10"  data-toggle="collapse" data-parent="#accordion" href="#collapseItem6">Infos</a>
+                            <span class="glyphicon glyphicon-chevron-down col-sm-2" data-toggle="collapse" data-parent="#accordion" href="#collapseItem6"></span>
+                        </div>
+                        <div id="collapseItem6" class="panel-collapse collapse">
+                            <h6>some text</h6>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            <span class="glyphicon-center glyphicon glyphicon-chevron-up" data-toggle="collapse" data-parent="#accordion" href="#collapseMenu"></span>
+        </div>
+    </div>
+</div>
+<script src="assets/js/app/App.js"></script>
+<!--<script src="assets/js/ParticleEngine.js"></script>-->
+<!--<script src="assets/js/ParticleEngineExamples.js"></script>-->
+<script src="assets/js/ShaderParticles.min.js"></script>
+<script src="js/plugins.js"></script>
+</body>
+<script>
+    /* var listOfPoints;
+     $(document).ready(function(){
+     App.Run();
+
+
+     $('.coord-creator').click(function(){
+     resArr = generator($('.number-picker').val());
+     });
+
+     $('.generate-button').click(function(){
+     App.rebuildNodes($('.number-picker').val());
+     });
+
+
+     $('.main-navbar').on('click', '.clickableTab', function(){
+     var $icon = $(this).find('.glyphicon');
+     if($icon.hasClass('glyphicon-chevron-up')){
+     $icon.removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
+     } else if($icon.hasClass('glyphicon-chevron-down')) {
+     $icon.removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
+     }
+     });
+
+     $('.glyphicon-center').click(function(){
+     var $icon = $('.clickableTab').find('.glyphicon-top');
+     if($icon.hasClass('glyphicon-chevron-up')){
+     $icon.removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
+     }
+     })
+     });*/
+</script>
+</html>

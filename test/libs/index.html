@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="../../assets/js/three.min.js"></script>
+    <!--<script src="../assets/js/bootstrap.min.js"></script>-->
+    <script src="../../assets/js/TrackballControls.js"></script>
+    <script src="../../assets/js/jscolor/jscolor.js"></script>
+    <script src="../../assets/js/dat.gui.js"></script>
+    <script src="../../assets/js/ConvexGeometry.js"></script>
+</head>
+<body>
+<div style="width:100%;heigh:100%" id="THREJS"></div>
+</body>
+<script>
+    var webglObjM;
+    function init() {
+        var div = document.getElementById('THREJS');
+        var webglObj = {};
+        webglObj.scene = new THREE.Scene();
+
+        webglObj.camera = new THREE.PerspectiveCamera(40, (window.innerWidth / window.innerHeight), 0.01, 1000);
+        webglObj.camera.position.set(20, 20, 20);
+        webglObj.container = document.getElementById('THREEJS');
+
+        // lights
+        webglObj.light = new THREE.DirectionalLight(0x4444cc, 2);
+        webglObj.light.intensity = 0;
+        webglObj.light.position.set(10, 10, 10).normalize();
+        //light.shadowCameraVisible = true;
+
+        webglObj.light.shadowDarkness = 1;
+        webglObj.light.castShadow = true;
+        webglObj.light.intensity = 6;
+
+        webglObj.scene.add(webglObj.light);
+        webglObj.axis = new THREE.AxisHelper(10, 10, 10);
+        webglObj.scene.add(webglObj.axis);
+
+        var lineColor = new THREE.Color(0x000000) ;
+
+        var renderer = webglObj.renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            preserveDrawingBuffer: true,
+            alpha: true
+        });
+        renderer.autoClear = false;
+        renderer.shadowMapType = THREE.PCFSoftShadowMap;
+        webglObj.renderer.shadowMapEnabled = true;
+        renderer.setClearColor(0x0a014c, 1);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        div.appendChild(renderer.domElement);
+        //renderer.autoClearColor = false;
+        //renderer.autoClearDepth = false;
+        //renderer.autoClearStencil = false;
+        //renderer.preserve;
+
+        renderer.clear();
+
+        var controls = webglObj.controls = new THREE.TrackballControls(webglObj.camera, renderer.domElement);
+        controls.rotateSpeed = 10.0;
+        controls.zoomSpeed = 1.2;
+        controls.panSpeed = 0.8;
+        controls.noZoom = false;
+        controls.noPan = false;
+        controls.staticMoving = true;
+        controls.dynamicDampingFactor = 0.3;
+        controls.keys = [65, 83, 68];     // ?
+        controls.minDistance = 0;
+        controls.maxDistance = 300;
+        controls.target.set(4.5, 4.5, 4.5);
+
+
+        //events
+    window.addEventListener('resize', onWindowResize, false);
+//    renderer.domElement.addEventListener('mousemove', App.utils.events.onMouseMove, false);
+        webglObjM = webglObj;
+        render();
+    }//init webgl objects
+
+    function render() {
+        var webglObj = webglObjM;
+        webglObj.camera.updateMatrixWorld();
+        webglObj.renderer.clear();
+        webglObj.renderer.render(webglObj.scene, webglObj.camera);
+        webglObj.renderer.clearDepth();
+    }
+    function animate() {
+        var webglObj = webglObjM;
+        requestAnimationFrame(animate);
+        webglObj.controls.update();
+        render();
+    }//
+     function onWindowResize () {
+         var webglObj = webglObjM;
+         webglObj.renderer.setSize(window.innerWidth, window.innerHeight);
+         webglObj.camera.aspect = window.innerWidth/window.innerHeight;
+         webglObj.camera.updateProjectionMatrix();
+
+    }
+    init();
+    animate();
+</script>
+</html>
