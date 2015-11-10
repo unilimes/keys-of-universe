@@ -324,7 +324,7 @@ App.utils = {
             webglObj.cubeHelper.add(helper);
             //webglObj.cubeHelper.visible=false;
             cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({color: 0xff0000}));
-            //App.rebuildCubes.add(webglObj.cubeHelper, cube);
+            App.rebuildCubes.add(webglObj.cubeHelper, cube);
             webglObj.scene.add(webglObj.cubeHelper);
             webglObj.container.appendChild(renderer.domElement);
 
@@ -344,7 +344,7 @@ App.utils = {
             webglObj.raycaster = new THREE.Raycaster();
             webglObj.mouseVector = new THREE.Vector3();
             //skybox
-            //App.rebuildSkyBox.add();
+            App.rebuildSkyBox.add();
             //gui
             App.guiObj.init();
             //events
@@ -1021,12 +1021,14 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
     /**building */
     if (objOfScene.category == 'object2D') {
         //if(!arr[arr.length-1].isAn) {
-        if (arr[1]) {
+        /*if (arr[1]) {
             settingsAn(arr[1]);
+        }else */if(arr[0]){
+            settingsAn(arr[0]);
         }
-        //    if (arr[arr.length - 1]) {
+            //if (arr[arr.length - 2]) {
         //        arr[arr.length - 1].isAn = true;
-        //        settingsAn(arr[arr.length - 1]);
+        //        settingsAn(arr[arr.length - 2]);
         //    }
         //}else{
         //    if (arr[1])settingsAn(arr[1]);
@@ -1096,9 +1098,9 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
                     curPoint.truba.visible = true;
                     currentObject.iter++;
                     clearInterval(intBuild);
-                    if (currentObject.iter == currentObject.drawPoints) {
+                    if (currentObject.iter == currentObject.drawPoints || currentObject.isFirst) {
                         var isCurOvj = arr.indexOf(currentObject);
-                        if (isCurOvj >= 0) {
+                        if (isCurOvj >= 0 || currentObject.isFirst) {
                             arr.shift();
                         }
                     }
@@ -2127,6 +2129,7 @@ App.rebuildNodes = function (numer) {
                     for (var i = 0; i < list2DPnt.length; i++) {
                         if (list2DPnt[i].category == 'point') {
                             list2DPnt[i].tooltip.visible = list2DPnt[i].visible = false;
+                            list2DPnt[i].isFirst =true;
                             points2D.push(list2DPnt[i]);
                         }
 
@@ -2135,9 +2138,23 @@ App.rebuildNodes = function (numer) {
                         list2DTbe[i].visible = false;
                     }
                     var firstEl = objectsForConnect.shift(), first2D = points2D[0];
-                    points2D.push(first2D);
-                    firstEl.building(objectsForConnect, false, objOfScene);
-                    first2D.building(points2D, true, objOfScene.object2D);
+
+                    //console.log(points2D.concat([]));
+                    //if(points2D.length > 3){
+                        var secondPart = points2D.concat([]).reverse();
+                        secondPart.splice(Math.floor(secondPart.length/2));
+                        points2D.splice(Math.round(points2D.length/2));
+                        points2D.shift();
+                        points2D.push(secondPart[secondPart.length-1]);
+                        secondPart.push(points2D[points2D.length-1]);
+                         firstEl.building(objectsForConnect, false, objOfScene);
+                         first2D.building(points2D, true, objOfScene.object2D);
+                        first2D.building(secondPart, true, objOfScene.object2D);
+                    //}else{
+                        //console.log('test');
+                        //points2D.push(first2D);
+                    //}
+
                     break;
                 case 'centeringSphere':
                     objEf = this.effects.centering(sphere);
@@ -2336,6 +2353,14 @@ App.rebuildNodes = function (numer) {
                 //this.effects.disableMaterials();
 
             } else {
+                    var cur={},cir={};
+                    cur.x =webglObj._dftControl.x,
+                    cur.y =webglObj._dftControl.y,
+                        cir.x = objOfScene.circle2D.position.x,
+                        cir.y = objOfScene.circle2D.position.y;
+                    webglObj._2dConsist.position.x = cur.x- cir.x//cur.x< cir.x?cur.x+ cir.x:cur.x- cir.x;
+                    webglObj._2dConsist.position.y = cur.y- cir.y//cur.y< cir.y?cur.y- cir.y:cur.y+ cir.y;
+                //}
                 //App.utils.interfaces.setView('2D');
             }
             if (number.toString().length == 3) {
@@ -2825,7 +2850,7 @@ App.guiObj = {
 
         this.interfaces.addGenerationFold();
         this.interfaces.generalSetFolders(this.folders.generalSet, App.guiObj.generateParameters);
-        //this.interfaces.keysFolderGenerate(this.folders.keysFolder);
+        this.interfaces.keysFolderGenerate(this.folders.keysFolder);
         this.folders.keysFolder.__ul.hidden = true;
 
         $(".hue-field").width(10);
@@ -3664,6 +3689,10 @@ Math.cropLineToPoints = function (lineBgn, lineEnd, points) {
 Math.getRandomArbitrary = function (min, max) {
     return Math.round(Math.random() * (max - min) + min);
 }
+
+
+
+
 /**
  * start app on document ready
  */
@@ -3700,6 +3729,7 @@ $(document).ready(function () {
             }
             webglObj._2dConsist.visible = false;
         } else {
+            webglObj._2dConsist.position.set(webglObj._dftControl.x, webglObj._dftControl.y, -45);
             var cur2d = webglObj._2dConsist.position;
             webglObj._dimension = false;
             webglObj.camera.position.set(webglObj._dftControl.x, webglObj._dftControl.y, -15);
@@ -3711,6 +3741,15 @@ $(document).ready(function () {
             webglObj.controls.maxDistance = 45;
             webglObj.cameraFixed = true;
             webglObj._2dConsist.visible = true;
+            if(listObj.length>0){
+                var cur={},cir={};
+                cur.x =webglObj._dftControl.x,
+                    cur.y =webglObj._dftControl.y,
+                    cir.x = listObj[listObj.length-1].circle2D.position.x,
+                    cir.y = listObj[listObj.length-1].circle2D.position.y
+                webglObj._2dConsist.position.x = cur.x- cir.x//cur.x< cir.x?cur.x+ cir.x:cur.x- cir.x;
+                webglObj._2dConsist.position.y = cur.y- cir.y//cur.y< cir.y?cur.y- cir.y:cur.y+ cir.y;
+            }
         }
         App.guiObj.interfaces.changeStructure(val.currentTarget.value == '3D');
         /*  for(var i=0;i<listObj.length;i++){
