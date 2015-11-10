@@ -2,7 +2,7 @@
  * Initialising  global variables
  */
 
-var App = App || {};
+var App = App || {}, offset = new THREE.Vector3();
 var lastCheck = {
     point: [],
     angle: [],
@@ -77,12 +77,21 @@ App.utils = {
                 }
             }
             if (webglObj._2dConsist && webglObj._2dConsist.canMove) {
-                var stepX = 0.3, stepY = 0.3;
-                if (previousPos.x > mouseVector.x)stepX *= (-1)
-                if (previousPos.y > mouseVector.y)stepY *= (-1)
+                var stepX = mouseVector.x + 1.3, stepY = mouseVector.y + 1.3;
+                //if (previousPos.x < mouseVector.x)stepX *= (-1)
+                //if (previousPos.y < mouseVector.y)stepY *= (-1)
                 var xCh = previousPos.x != mouseVector.x, yCh = previousPos.y != mouseVector.y;
-                if (xCh) webglObj._2dConsist.position.x += stepX;
-                if (yCh)webglObj._2dConsist.position.y += stepY;
+                //if (xCh) webglObj._2dConsist.position.x += stepX;
+                //if (yCh )webglObj._2dConsist.position.y += stepY;
+                //webglObj._2dConsist.position.x = stepX;
+                //webglObj._2dConsist.position.y = stepY;
+                var intersects = projector.intersectObject(webglObj._plate);
+
+                if (intersects.length > 0) {
+                    offset.z = 0
+                    webglObj._2dConsist.position.copy(intersects[0].point.sub(offset));
+
+                }
 
 
             }
@@ -101,7 +110,9 @@ App.utils = {
                 var data = [webglObj._plate];
                 var intersect = projector.intersectObjects(data)[0];
                 if (intersect && intersect.object) {
+                    offset.copy(intersect.point).sub(webglObj._2dConsist.position);
                     webglObj._2dConsist.canMove = true;
+                    webglObj._2dConsist.intersect = intersect;
                     document.getElementById("THREEJS").style.cursor = "all-scroll";
                 }
             }
@@ -313,7 +324,7 @@ App.utils = {
             webglObj.cubeHelper.add(helper);
             //webglObj.cubeHelper.visible=false;
             cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({color: 0xff0000}));
-            App.rebuildCubes.add(webglObj.cubeHelper, cube);
+            //App.rebuildCubes.add(webglObj.cubeHelper, cube);
             webglObj.scene.add(webglObj.cubeHelper);
             webglObj.container.appendChild(renderer.domElement);
 
@@ -333,7 +344,7 @@ App.utils = {
             webglObj.raycaster = new THREE.Raycaster();
             webglObj.mouseVector = new THREE.Vector3();
             //skybox
-            App.rebuildSkyBox.add();
+            //App.rebuildSkyBox.add();
             //gui
             App.guiObj.init();
             //events
@@ -625,21 +636,28 @@ App.utils = {
         },//animate obj of app
         translateAllChildrenBySphereCenter: function (obj) {
             obj.isAlreadySetNewGlobalPos = true;
-            var spherePos = obj.sphere.position;
+            var spherePos = obj.sphere.position, sphere2dPo = obj.circle2D.position;
             obj.position.set(spherePos.x, spherePos.y, spherePos.z);
-            var objPos = obj.position;
+            obj.object2D.position.set(sphere2dPo.x, sphere2dPo.y, sphere2dPo.z);
+            var objPos = obj.position, obj2DP = obj.object2D.position;
             /*for all chides*/
             for (var i = 0; i < obj.children.length; i++) {
                 //if(obj.children[i].category != 'tube'){
-                    var curMeshPoj = obj.children[i].position;
-                    obj.children[i].position.set(curMeshPoj.x - objPos.x, curMeshPoj.y - objPos.y, curMeshPoj.z - objPos.z);
+                var curMeshPoj = obj.children[i].position;
+                obj.children[i].position.set(curMeshPoj.x - objPos.x, curMeshPoj.y - objPos.y, curMeshPoj.z - objPos.z);
+                //}
+            }
+            for (var i = 0; i < obj.object2D.children.length; i++) {
+                //if(obj.children[i].category != 'tube'){
+                var curMeshPoj = obj.object2D.children[i].position;
+                obj.object2D.children[i].position.set(curMeshPoj.x - obj2DP.x, curMeshPoj.y - obj2DP.y, curMeshPoj.z - obj2DP.z);
                 //}
             }
             /*for 2d tubes*/
-          /*  for (var i = 0; i < obj.linsArray.length; i++) {
-                var curMeshPoj = obj.linsArray[i].position;
-                obj.linsArray[i].position.set(curMeshPoj.x + objPos.x, curMeshPoj.y + objPos.y, curMeshPoj.z + objPos.z);
-            }*/
+            /*  for (var i = 0; i < obj.linsArray.length; i++) {
+             var curMeshPoj = obj.linsArray[i].position;
+             obj.linsArray[i].position.set(curMeshPoj.x + objPos.x, curMeshPoj.y + objPos.y, curMeshPoj.z + objPos.z);
+             }*/
             /*for sprite*/
             var childScene2 = App.utils.types.webgl.scene2.children;
             for (var i = 0; i < childScene2.length; i++) {
@@ -656,6 +674,9 @@ App.utils = {
             curObj.rotation.x += x;
             curObj.rotation.y += y;
             curObj.rotation.z += z;
+            curObj.object2D.rotation.x += x;
+            curObj.object2D.rotation.y += y;
+            //curObj.object2D.rotation.z +=z;
             curObj.tipsObject.rotation.x += x;
             curObj.tipsObject.rotation.y += y;
             curObj.tipsObject.rotation.z += z;
@@ -667,6 +688,10 @@ App.utils = {
             curObj.rotation.x = curObj.rotateRad.x;
             curObj.rotation.y = curObj.rotateRad.y;
             curObj.rotation.z = curObj.rotateRad.z;
+
+            curObj.object2D.rotation.x = curObj.rotateRad.x;
+            curObj.object2D.rotation.y = curObj.rotateRad.y;
+
             curObj.tipsObject.rotation.x = curObj.rotateRad.x;
             curObj.tipsObject.rotation.y = curObj.rotateRad.y;
             curObj.tipsObject.rotation.z = curObj.rotateRad.z;
@@ -966,10 +991,10 @@ App.utils = {
 
 THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
     this.iter = 0;
-    this.drawPoints = arr.length;
+    this.drawPoints = objOfScene.category == 'object2D' ? 1 : arr.length;
     this.tooltip.visible = true;
     this.setScaling = 1.2;
-    var currentObject = this;
+    var currentObject = this, lastObj = App.utils.types.webgl.listObjOfScene[App.utils.types.webgl.listObjOfScene.length - 1];
 
     /**bang*/
     var geometry = new THREE.Geometry();
@@ -994,7 +1019,24 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
     }, 100);
 
     /**building */
-    $.each(arr, function (key, nextObject) {
+    if (objOfScene.category == 'object2D') {
+        //if(!arr[arr.length-1].isAn) {
+        if (arr[1]) {
+            settingsAn(arr[1]);
+        }
+        //    if (arr[arr.length - 1]) {
+        //        arr[arr.length - 1].isAn = true;
+        //        settingsAn(arr[arr.length - 1]);
+        //    }
+        //}else{
+        //    if (arr[1])settingsAn(arr[1]);
+        //}
+    } else {
+        $.each(arr, function (key, nextObject) {
+            settingsAn(nextObject);
+        });
+    }
+    function settingsAn(nextObject) {
         var tubeMaterial = new THREE.LineBasicMaterial({
             color: 0x0000ff, side: THREE.DoubleSide
         });
@@ -1028,13 +1070,15 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
             endTrubeLight: pSystem
         };
         if (vBegn != vEnd) {
-            var truba = objOfScene.helpers.getTubeByPoint(vBegn, vEnd, false, flag);
-            if ( !truba.visible) {
+            var truba = objOfScene.category == 'object2D' ? lastObj.helpers.getLineByPoint(vBegn, vEnd) : objOfScene.helpers.getTubeByPoint(vBegn, vEnd, false, flag);
+            if (!truba.visible) {
                 if (!flag) {
                     truba.geometry = App.utils.interfaces.tubeLineGeometry(vBegn, vBegn, flag);
                     truba.visible = true;
                 }
                 curPoint.truba = truba;
+                //var copy =arr.concat([]);
+                //arr = objOfScene.category == 'object2D'?[]:arr;
                 var intBuild = setInterval(function () {
                     objOfScene.add(curPoint.endTrubeLight);
                     return animateBuilding(curPoint)
@@ -1054,7 +1098,7 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
                     clearInterval(intBuild);
                     if (currentObject.iter == currentObject.drawPoints) {
                         var isCurOvj = arr.indexOf(currentObject);
-                        if (isCurOvj > 0) {
+                        if (isCurOvj >= 0) {
                             arr.shift();
                         }
                     }
@@ -1077,7 +1121,8 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
                 }
             }
         }
-    });
+    }
+
 };
 
 /**
@@ -1128,6 +1173,7 @@ App.rebuildNodes = function (numer) {
     objOfScene.tipsObject.parentNam = objName;
     //2d
     objOfScene.object2D = new THREE.Object3D();
+    objOfScene.object2D.category = 'object2D';
     //corner
     objOfScene.object2D.corner2D = new THREE.Object3D();
     objOfScene.object2D.corner2D.visible = false;
@@ -1198,6 +1244,8 @@ App.rebuildNodes = function (numer) {
                 }));
                 circle.category = 'point';
                 var sprite = objOfScene.Sprite.clone();
+                circle.tooltip = sprite;
+                circle.dimensnP = circle;
                 objOfScene.object2D.point2D.add(sprite);
                 objOfScene.object2D.point2D.add(circle);
                 objOfScene.pointSphere.dimensnP = circle;
@@ -1280,8 +1328,8 @@ App.rebuildNodes = function (numer) {
             //for 2d
             var str = objOfScene.listOf2dCord[objOfScene.listOf2dCord.length - 1],
                 mat = new THREE.LineBasicMaterial({
-                color: 0x0000ff, side: THREE.DoubleSide
-            });
+                    color: 0x0000ff, side: THREE.DoubleSide
+                });
             for (var i = 0; i < objOfScene.listOf2dCord.length; i++) {
                 var cur = objOfScene.listOf2dCord[i];
                 var geometry = new THREE.Geometry();
@@ -1289,6 +1337,8 @@ App.rebuildNodes = function (numer) {
                 geometry.vertices.push(new THREE.Vector3(cur.x, cur.y, cur.z));
                 var line = new THREE.Line(geometry, mat);
                 line.updateMatrixWorld();
+                line.vBegn = geometry.vertices[0].clone();
+                line.vEnd = geometry.vertices[1].clone();
                 objOfScene.object2D.tube2D.add(line);
                 str = cur;
             }
@@ -1541,6 +1591,21 @@ App.rebuildNodes = function (numer) {
                     return objOfScene.tubesArray[i];
                 }
             }
+        },
+        getLineByPoint: function (point1, point2) {
+            var lines = objOfScene.object2D.tube2D.children;
+            //console.log(lines,point1,point2);
+            for (var i = 0; i < lines.length; i++) {
+                var curTub = lines[i];
+                if (((curTub.vBegn.x == point1.x && curTub.vBegn.y == point1.y && curTub.vBegn.z == point1.z) ||
+                    (curTub.vEnd.x == point1.x && curTub.vEnd.y == point1.y && curTub.vEnd.z == point1.z)) &&
+                    ((curTub.vBegn.x == point2.x && curTub.vBegn.y == point2.y && curTub.vBegn.z == point2.z) ||
+                    (curTub.vEnd.x == point2.x && curTub.vEnd.y == point2.y && curTub.vEnd.z == point2.z))) {
+                    return lines[i];
+                }
+            }
+            return false;
+
         },
         getAvialablePoints: function (points, rayCast, objOfScene) {
             var direction, interObj;
@@ -2042,7 +2107,7 @@ App.rebuildNodes = function (numer) {
             switch (App.utils.types.animaEffect) {
                 case 'building':
                     objEf = {ef: 1};
-                    var objectsForConnect = [];
+                    var objectsForConnect = [], points2D = [];
                     objOfScene.pointsArray.concat([]);
                     for (var l = 0; l < objOfScene.pointsArray.length; l++) {
                         if (objOfScene.pointsArray[l].category == 'points') {
@@ -2056,8 +2121,23 @@ App.rebuildNodes = function (numer) {
                         objOfScene.tubesArray[i].material.opacity = 1;
                     }
 
-                    var firstEl = objectsForConnect.shift();
-                    if (inputNumber.toString().length < 4)firstEl.building(objectsForConnect, App.utils.types.webgl.dimensn, objOfScene);
+                    //2d
+                    var list2DPnt = objOfScene.object2D.point2D.children,
+                        list2DTbe = objOfScene.object2D.tube2D.children;
+                    for (var i = 0; i < list2DPnt.length; i++) {
+                        if (list2DPnt[i].category == 'point') {
+                            list2DPnt[i].tooltip.visible = list2DPnt[i].visible = false;
+                            points2D.push(list2DPnt[i]);
+                        }
+
+                    }
+                    for (var i = 0; i < list2DTbe.length; i++) {
+                        list2DTbe[i].visible = false;
+                    }
+                    var firstEl = objectsForConnect.shift(), first2D = points2D[0];
+                    points2D.push(first2D);
+                    firstEl.building(objectsForConnect, false, objOfScene);
+                    first2D.building(points2D, true, objOfScene.object2D);
                     break;
                 case 'centeringSphere':
                     objEf = this.effects.centering(sphere);
@@ -2246,23 +2326,21 @@ App.rebuildNodes = function (numer) {
             /*if (number.toString().length ==4) {
              this.drawCorners(d);
              }*/
-
-            if (number.toString().length == 3) {
-                this.getIntersectPoints(d);
-            }
             App.utils.types.webgl.listObjOfScene.push(objOfScene);
 
             if (webglObj._dimension) {
                 App.utils.types.webgl.camera.lookAt(objOfScene.sphere.position);
-                App.utils.types.webgl.camera.position.set(20,20,20);
+                App.utils.types.webgl.camera.position.set(20, 20, 20);
                 App.utils.types.cameraDistance = 20;
                 //App.utils.interfaces.changeDimension(false);
                 //this.effects.disableMaterials();
-                if (number.toString().length == 3) {
-                    this.startEffect(objOfScene);
-                }
+
             } else {
                 //App.utils.interfaces.setView('2D');
+            }
+            if (number.toString().length == 3) {
+                this.getIntersectPoints(d);
+                this.startEffect(objOfScene);
             }
 
 
@@ -2446,7 +2524,7 @@ App.rebuild2D = {
         webglObj.scene.add(webglObj._2dConsist);
         webglObj._2dConsist.visible = false;
     },
-    getTexture: function (size) {
+    getTexture: function (size, color) {
         var canvas = document.createElement('canvas');
         document.getElementById('test').appendChild(canvas);
         canvas.width = size.width;
@@ -2454,12 +2532,11 @@ App.rebuild2D = {
         //$(canvas).css('background-color', 'rgba(232, 232, 232, 1.0)');
         var ctx = canvas.getContext('2d');
         //ctx.fillStyle = "rgba(10, 1, 76, 1)";
-        ctx.fillStyle = "rgba(233, 233, 233, 1)";
-
-        //ctx.fillStyle = "#DEE0D2";
+        ctx.fillStyle = color ? color.back : "rgba(255, 255, 255, 1)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         ctx.font = "10px Verdana";
-        ctx.fillStyle = "rgba(233, 1, 233, 1)";
+        ctx.fillStyle = color ? color.point : "rgba(233, 1, 233, 1)";
         var _system = [];
         var rows = 2500, rowWidth = 1000, stepI = 231, stepJ = 162, curJ = 0, el = 0;
         for (var i = 10; i < rows; i += stepI) {
@@ -2543,7 +2620,7 @@ App.rebuild2D = {
     get2DCoordinat: function (arr) {
 
         var appObj = App.utils.types, webglObj = appObj.webgl, _system = webglObj._system, scale_html = 100, objSystmPstn = [],
-            plateS = appObj._2dPlateSize ;
+            plateS = appObj._2dPlateSize;
         var absP = {x: plateS.x / 2, y: plateS.y / 2}, scale_sys = 100;//there is (0,0) of new system of coordinates
 
         for (var k = 0; k < arr.length; k++) {
@@ -2748,7 +2825,7 @@ App.guiObj = {
 
         this.interfaces.addGenerationFold();
         this.interfaces.generalSetFolders(this.folders.generalSet, App.guiObj.generateParameters);
-        this.interfaces.keysFolderGenerate(this.folders.keysFolder);
+        //this.interfaces.keysFolderGenerate(this.folders.keysFolder);
         this.folders.keysFolder.__ul.hidden = true;
 
         $(".hue-field").width(10);
@@ -3068,6 +3145,42 @@ App.guiObj = {
                 App.rebuildSkyBox.changeBackground(val);
             });
         },
+        general2DSetFolders: function (generalSet) {
+            var par = {
+                backColor: "rgba(255, 255, 255, 1)",
+                listTexture: [],
+                pointColor: "rgba(233, 1, 233, 1)"
+            }, lastBavkColor = '#ffffff';
+            generalSet.addColor(par, 'backColor').name('Back 2D Color').onChange(function (clr) {
+                lastBavkColor = clr;
+                App.utils.types.webgl._plate.material.color.setHex(('0x' + clr.substr(1)));
+            });
+            generalSet.addColor(par, 'pointColor').name('Point 2D Color').onChange(function (clr) {
+                var appObj = App.utils.types, webglObj = appObj.webgl, _systemSize = appObj._2dPlateSize, scale_html = 100;
+                webglObj._2dTexture = App.rebuild2D.getTexture({
+                    width: _systemSize.x * scale_html,
+                    height: _systemSize.y * scale_html
+                }, {back: lastBavkColor, point: clr});
+                var texture = new THREE.Texture(webglObj._2dTexture);
+                texture.needsUpdate = true;
+                texture.minFilter = THREE.LinearFilter;
+                var mat = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    side: THREE.DoubleSide
+                });
+                webglObj._plate.material = mat;
+            });
+            generalSet.add(par, 'listTexture', ['NONE', 'mountain', 'siege', 'starfield', 'misty', 'tidepool']).name('Background').onChange(function (val) {
+                App.rebuildSkyBox.changeBackground(val);
+            });
+
+            $(".hue-field").width(10);
+        },
+        clearFolder: function (folder) {
+            for (var i = 0; i < folder.length; i++) {
+
+            }
+        },
         keysFolderGenerate: function (keysFolder) {
             var curKeyF = {
                 square: 0,
@@ -3135,7 +3248,7 @@ App.guiObj = {
                     backColor: "rgba(0, 200, 0, 1)"
                 });
                 var objC = lastObjAd.circle2D.position;
-                sprite.position.set(objC.x, objC.y, objC.z);
+                sprite.position.set(objC.x, objC.y, objC.z + 0.1);
                 sprite.category = 'square';
                 sprite.visible = false;
                 lastObjAd.object2D.add(sprite);
@@ -3157,6 +3270,7 @@ App.guiObj = {
                     /*add info for 2d */
                     //if (isNeedR) {
                     //var curP = figureSet.anglePos[i];
+                    figureSet.anglePos[i].z += 0.1;
                     lastObjAd.helpers.createSpriteForObj({
                         text_f: figData.angle + '',
                         text_s: figureSet.angle[i] + '.0000000\xB0',
@@ -3190,7 +3304,22 @@ App.guiObj = {
             editFolder.close();
             anglesFolder.close();
             figureAnimateSet.close();
+        },
+        changeStructure: function (dimension) {
+            var nameF = 'General Settings', genFold = App.guiObj.folders.menuFolder;
+            if (genFold) {
+                genFold.__folders[nameF].__ul.remove();
+                delete  genFold.__folders[nameF];
+            }
+            App.guiObj.folders.generalSet = App.guiObj.folders.menuFolder.addFolder(nameF);
+            if (dimension) {
+                App.guiObj.interfaces.generalSetFolders(App.guiObj.folders.generalSet, App.guiObj.generateParameters);
+            } else {
+                App.guiObj.interfaces.general2DSetFolders(App.guiObj.folders.generalSet);
+            }
+
         }
+
     }//settings for objects
 
 };//settings for gui controll
@@ -3363,27 +3492,27 @@ App.numberWorker = {
 Math.figureDataByPoints = function (arr, arr2D) {
     var squareFig = 0, squareFigs = [], sumPoints = 0, angles = [], anglesPos = [],
         cur, cur2D,
-        arrLast = arr[arr.length - 1], arrLast2D =  arr2D?arr2D[arr2D.length - 1]:[],
-        prev = arr[0], prev2D = arr2D?arr2D[0]:[];
+        arrLast = arr[arr.length - 1], arrLast2D = arr2D ? arr2D[arr2D.length - 1] : [],
+        prev = arr[0], prev2D = arr2D ? arr2D[0] : [];
     if (arr.length > 2) {
         for (var i = 1; i < arr.length && i + 1 < arr.length; i++) {
             cur = arr[i];
-            cur2D =  arr2D?arr2D[i]:[];
+            cur2D = arr2D ? arr2D[i] : [];
             squareFigs.push(this.getSquareByPoints(arr[0], cur, arr[i + 1]));
             squareFig += squareFigs[squareFigs.length - 1];
             var p1 = prev, p2 = arr[i + 1], p3 = cur;
             angles.push(this.round(Math.getCornerBtwTwoVercorsAndIntrsctinPnt(p1, p2, p3, false, true)));
-            if(arr2D) anglesPos.push(Math.getPositionForValueOfCorner(arr2D[i + 1], cur2D, prev2D, false));
+            if (arr2D) anglesPos.push(Math.getPositionForValueOfCorner(arr2D[i + 1], cur2D, prev2D, false));
             prev = arr[i];
-            prev2D = arr2D?arr2D[i]:[];
+            prev2D = arr2D ? arr2D[i] : [];
         }
 //    sumPoints += arrLast[0] + arrLast[1] + arrLast[2];
         var p1 = arr[arr.length - 2], p2 = arr[0], p3 = arrLast;
         angles.push(this.round(Math.getCornerBtwTwoVercorsAndIntrsctinPnt(p1, p2, p3, false, true)));
-        if(arr2D)anglesPos.push(Math.getPositionForValueOfCorner(arr2D[0], arrLast2D, arr2D[arr2D.length - 2], false));
+        if (arr2D)anglesPos.push(Math.getPositionForValueOfCorner(arr2D[0], arrLast2D, arr2D[arr2D.length - 2], false));
         var p1 = arr[1], p2 = arrLast, p3 = arr[0];
-       angles.push(this.round(Math.getCornerBtwTwoVercorsAndIntrsctinPnt(p1, p2, p3, false, true)));
-        if(arr2D)anglesPos.push(Math.getPositionForValueOfCorner(arrLast2D, arr2D[0], arr2D[1], false));
+        angles.push(this.round(Math.getCornerBtwTwoVercorsAndIntrsctinPnt(p1, p2, p3, false, true)));
+        if (arr2D)anglesPos.push(Math.getPositionForValueOfCorner(arrLast2D, arr2D[0], arr2D[1], false));
     } else {
         angles.push(0);
     }
@@ -3583,6 +3712,7 @@ $(document).ready(function () {
             webglObj.cameraFixed = true;
             webglObj._2dConsist.visible = true;
         }
+        App.guiObj.interfaces.changeStructure(val.currentTarget.value == '3D');
         /*  for(var i=0;i<listObj.length;i++){
          App.utils.interfaces.changeDimension(false,false,listObj[i]);
          }*/
