@@ -1,0 +1,14 @@
+{
+  "name": "keys-of-universe",
+  "description": "Awesome Points App",
+  "author": "Unilimes <unilimesdevs@gmail.com>",
+  "version": "0.1.0",
+  "dependencies": {
+    "less": "latest"
+  },
+  "devDependencies": {
+    "bootstrap": "^3.3.5",
+    "jquery": "^2.1.4",
+    "three": "^0.71.0"
+  }
+}
