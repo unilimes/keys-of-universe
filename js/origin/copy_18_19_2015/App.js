@@ -931,12 +931,13 @@ App.rebuildCubes = {
         }
     },//change visibility for all little cubbes
     add: function (cubeHelper, cube) {
-        var spriteCreator = App.utils.interfaces.createSprite;
+        var spriteCreator = App.utils.interfaces.createSprite,
+            objAbs =  new THREE.Object3D();
         for (var i = -4; i < 6; i++) {
             var littleCubeX = cube.clone();
             var helperX = new THREE.BoxHelper(littleCubeX);
             helperX.material.color.set(0x0000ff);
-            var objX = new THREE.Object3D();
+            var objX = objAbs.clone();
             objX.category = 'littleCube';
             objX.add(helperX);
             objX.position.set(i, 0, 0);
@@ -951,7 +952,7 @@ App.rebuildCubes = {
                 var littleCubeY = cube.clone();
                 var helperY = new THREE.BoxHelper(littleCubeY);
                 helperY.material.color.set(0x0000ff);
-                var objY = new THREE.Object3D();
+                var objY = objAbs.clone();
                 objY.category = 'littleCube';
                 objY.add(helperY);
                 objY.position.set(i, j, 0);
@@ -966,7 +967,7 @@ App.rebuildCubes = {
                     var littleCubeZ = cube.clone();
                     var helperZ = new THREE.BoxHelper(littleCubeZ);
                     helperZ.material.color.set(0x0000ff);
-                    var objZ = new THREE.Object3D();
+                    var objZ = objAbs.clone();
                     objZ.category = 'littleCube';
                     objZ.add(helperZ);
                     objZ.position.set(i, j, n);

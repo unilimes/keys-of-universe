@@ -9,6 +9,6 @@
   "devDependencies": {
     "bootstrap": "^3.3.5",
     "jquery": "^2.1.4",
-    "three": "^0.71.0"
+    "three": "^0.72.0"
   }
 }
