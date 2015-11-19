@@ -1215,7 +1215,7 @@ App.remote = {
 
 }
 
-THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
+THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
     this.iter = 0;
     this.drawPoints = /*objOfScene.category == 'object2D' ? 1 : */arr.length;
     this.tooltip.visible = true;
@@ -1245,29 +1245,34 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
     }, 100);
 
     /**building */
-    /*   if (objOfScene.category == 'object2D') {
-     //if(!arr[arr.length-1].isAn) {
-     */
-    /*if (arr[1]) {
-     settingsAn(arr[1]);
-     }else */
-    /*if(arr[0]){
-     settingsAn(arr[0]);
-     }
-     //if (arr[arr.length - 2]) {
-     //        arr[arr.length - 1].isAn = true;
-     //        settingsAn(arr[arr.length - 2]);
-     //    }
-     //}else{
-     //    if (arr[1])settingsAn(arr[1]);
-     //}
-     } else {*/
-    $.each(arr, function (key, nextObject) {
-        settingsAn(nextObject);
-    });
-    //}
+    if (flag && currentObject.isFirst) {
+        //if(!arr[arr.length-1].isAn) {
+        if (arr[0]) {
+            settingsAn(arr[0]);
+        } else if (arr[1]) {
+            settingsAn(arr[1]);
+        }
+        //if (arr[arr.length - 2]) {
+        //        arr[arr.length - 1].isAn = true;
+        //        settingsAn(arr[arr.length - 2]);
+        //    }
+        //}else{
+        //    if (arr[1])settingsAn(arr[1]);
+        //}
+    } else {
+        $.each(arr, function (key, nextObject) {
+            if(flag1){
+                if(key>0){
+                    settingsAn(nextObject);
+                }
+            }else{
+                settingsAn(nextObject);
+            }
+
+        });
+    }
     function settingsAn(nextObject) {
-        var tubeMaterial = currentObject.material;
+        var tubeMaterial;// = currentObject.material;
         var pMaterial = new THREE.PointCloudMaterial({
             color: 0xfff000,
             size: 1.5,
@@ -1293,7 +1298,7 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
             someIt: 0,
             listLength: arr.length,
             keyP: 0,
-            countOfPoints: 80,
+            countOfPoints: currentObject.dst?currentObject.dst:80,
             buildTube: nextObject,
             endTrubeLight: pSystem
         };
@@ -1305,12 +1310,14 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
                     truba.visible = true;
                 }
                 curPoint.truba = truba;
+                tubeMaterial = truba.material;
                 //var copy =arr.concat([]);
                 //arr = objOfScene.category == 'object2D'?[]:arr;
+               var  timerH = flag?flag:Math.getRandomArbitrary(20, 50);
                 var intBuild = setInterval(function () {
                     objOfScene.add(curPoint.endTrubeLight);
                     return animateBuilding(curPoint)
-                }, Math.getRandomArbitrary(20, 50));
+                }, timerH);//
             }
 
             function animateBuilding(curPoint) {
@@ -1328,6 +1335,17 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
                         var isCurOvj = arr.indexOf(currentObject);
                         if (isCurOvj >= 0 || currentObject.isFirst) {
                             arr.shift();
+                            //for 2ld ending animation
+                            if(!arr.length && currentObject.isFirst && objOfScene._2dPnts.length > 3){
+                                var copy2DPnts = objOfScene._2dPnts.concat([]),
+                                    firstAn =  copy2DPnts.shift();
+                                //copy2DPnts.push(firstAn);
+                                firstAn.isFirst=false;
+                                for(var js = 0;js <copy2DPnts.length;js++){
+                                    copy2DPnts[js].isFirst=false;
+                                }
+                                firstAn.building(copy2DPnts, flag, objOfScene,true);
+                            }
                         }
                     }
                     ne.building(arr, flag, objOfScene);
@@ -1353,8 +1371,8 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene) {
 
 };
 
-THREE.Mesh.prototype.buildCircle = function (center, radius) {
-    var curObj = this, step = radius < 6 ? 20 / Math.round(radius) : 13 / Math.round(radius),
+THREE.Mesh.prototype.buildCircle = function (center, radius, bgnAngle, step,speed) {
+    var curObj = this, step = step,//radius < 6 ? 20 / Math.round(radius) : 13 / Math.round(radius),
         points = [], drawCount = 0,
         webglObj = App.utils.types.webgl,
         circleLine = new THREE.BufferGeometry(),
@@ -1369,18 +1387,25 @@ THREE.Mesh.prototype.buildCircle = function (center, radius) {
             transparent: true
         }),
         particlesGeo = new THREE.Geometry(),
-        rectMesh;
+        rectMesh,
+        timerH = speed;//countOfPnts * 50;
     particlesGeo.vertices.push(new THREE.Vector3(0, 0, 0));
     var pSystem = new THREE.PointCloud(particlesGeo, pMaterial);
     pSystem.dynamic = true;
     pSystem.sortParticles = true;
 
     /*get points on circle*/
-    for (var i = 0; i < 361; i += step) {
-        //angle +=i;
-        var x = center.x + Math.cos(i * (Math.PI / 180)) * radius,
-            y = center.y + Math.sin(i * (Math.PI / 180)) * radius;
-        points.push([x, y, center.z]);
+    var bgnAngle = Math.round(bgnAngle),
+        _2Arc = false, curAng = bgnAngle + 0, byH = bgnAngle >= 0;
+    if (bgnAngle >= 0) {
+        curAng = 360 - curAng;
+    } else {
+        curAng += 180;
+    }
+    for (var i = curAng; i < (curAng+step + 361); i += step) {
+            var x = center.x + Math.cos(i * (Math.PI / 180)) * radius,
+                y = center.y + Math.sin(i * (Math.PI / 180)) * radius;
+            points.push([x, y, center.z]);
     }
     /*build dunamic geometry**/
     var vertices = new Float32Array(points.length * 3);
@@ -1395,11 +1420,12 @@ THREE.Mesh.prototype.buildCircle = function (center, radius) {
     rectMesh.material.color = curObj.material.color;
     webglObj._2dConsist.add(rectMesh);
     webglObj._2dConsist.add(pSystem);
+    drawCount = 0;
 
     var timer = setInterval(function () {
         return drawCircle(curObj);
 
-    }, Math.getRandomArbitrary(50, 100));
+    }, timerH);// Math.getRandomArbitrary(50, 100)
 
     function drawCircle(curObj) {
         if (drawCount == points.length) {
@@ -1409,8 +1435,9 @@ THREE.Mesh.prototype.buildCircle = function (center, radius) {
             console.warn('This bullshit was added after add animation for 2d circle!!!')
             clearInterval(timer);
         } else {
-            circleLine.setDrawRange(0, drawCount);
-            pSystem.position.set(points[drawCount][0], points[drawCount][1], points[drawCount++][2]);
+            circleLine.setDrawRange(0, drawCount + 1);
+            pSystem.position.set(points[drawCount][0], points[drawCount][1], points[drawCount][2]);
+            drawCount++;
         }
     }
 
@@ -1573,7 +1600,7 @@ App.rebuildNodes = function (numer) {
                 objOfScene.object2D.point2D.add(circle);
                 objOfScene.pointSphere.dimensnP = circle;
 
-                objOfScene.helpers.draw2DPnts(circle, sprite, key);
+                objOfScene.helpers.draw2DPnts(circle, sprite, objOfScene.listOf2dCord[key]);
                 /*var cur = objOfScene.listOf2dCord[key];
                  if (cur) {
                  circle.position.set(cur.x, cur.y, cur.z);
@@ -1586,7 +1613,7 @@ App.rebuildNodes = function (numer) {
 
             });
         },// draw points on screen
-        draw2DPnts: function (circle, sprite, key) {
+        draw2DPnts: function (circle, sprite, list) {
             var stepEps = 0.05;
             //    circle = new THREE.Mesh(new THREE.RingGeometry(littleR + 0.01, littleR, 32), new THREE.MeshBasicMaterial({
             //        color: 0x9012e8, side: THREE.DoubleSide
@@ -1599,7 +1626,7 @@ App.rebuildNodes = function (numer) {
             //objOfScene.object2D.point2D.add(sprite);
             //objOfScene.object2D.point2D.add(circle);
             //objOfScene.pointSphere.dimensnP = circle;
-            var cur = objOfScene.listOf2dCord[key];
+            var cur = list;
             if (cur) {
                 circle.position.set(cur.x, cur.y, cur.z);
                 sprite.position.set(cur.x, cur.y + (stepEps * 5), cur.z + stepEps);
@@ -1699,7 +1726,7 @@ App.rebuildNodes = function (numer) {
              str = cur;
              }*/
         },// draw tubes on screen
-        draw2DConnections: function (_2dCord, mat, obj) {
+        draw2DConnections: function (_2dCord, mat, obj, vis) {
             var last2dObj = _2dCord.length - 2/*, isComplex = objOfScene.listOf2dCord.length > 3*/;
             while (_2dCord.length) {
                 var cur = _2dCord.shift(), inner = false;
@@ -1718,6 +1745,13 @@ App.rebuildNodes = function (numer) {
                     } else if (last2dObj == key) {
                         last2dObj = false;
                         line.inner = true;
+                    }
+                    if (vis) {
+                        if (line.inner) {
+                            line.visible = vis.v1;
+                        } else {
+                            line.visible = vis.v2;
+                        }
                     }
                     obj.add(line);
                 })
@@ -2545,37 +2579,50 @@ App.rebuildNodes = function (numer) {
 
                     //2d
                     var list2DPnt = objOfScene.object2D.point2D.children,
-                        list2DTbe = objOfScene.object2D.tube2D.children;
+                        list2DTbe = objOfScene.object2D.tube2D.children,
+                        centrPstn = objOfScene.circle2D.position;
+
                     for (var i = 0; i < list2DPnt.length; i++) {
-                        if (list2DPnt[i].category == 'point') {
-                            list2DPnt[i].tooltip.visible = list2DPnt[i].visible = false;
-                            //list2DPnt[i].isFirst =true;
-                            points2D.push(list2DPnt[i]);
+                        var curMS = list2DPnt[i];
+                        if (curMS.category == 'point') {
+                            curMS.tooltip.visible = curMS.visible = false;
+                            curMS.isFirst = true;
+                            curMS.angleByCntr = Math.getCornerBtwTwoPoints(curMS.position, centrPstn);
+                            points2D.push(curMS);
                         }
 
+                    }
+                    //sort by angle by center
+                    points2D.sort(function (a, b) {
+                        return a.angleByCntr > b.angleByCntr
+                    });
+                    //get thre all distance btw points
+                    var dis= 0,deltaSc =10,dst,
+                    speed2D = 130/Math.floor(objOfScene.circle2D.radious2d*deltaSc);
+                    speed2D = speed2D <deltaSc?speed2D*deltaSc:speed2D;
+                    for(var i=0;i<points2D.length;i++){
+                        if(i+1<points2D.length){
+                            points2D[i].dst = Math.round(Math.getDistBtwTwoPoints(points2D[i].position,points2D[i+1].position)*deltaSc);
+                        }else{
+                            points2D[i].dst = Math.round(Math.getDistBtwTwoPoints(points2D[i].position,points2D[0].position)*deltaSc) ;
+                        }
+                        dis += points2D[i].dst;
                     }
                     for (var i = 0; i < list2DTbe.length; i++) {
                         list2DTbe[i].visible = false;
                     }
+
+                    objOfScene.object2D._2dPnts = points2D.concat([]);
                     var firstEl = objectsForConnect.shift(), first2D = points2D.shift();//points2D[0];
-
-                    //if(points2D.length > 3){
-                    //    var secondPart = points2D.concat([]).reverse();
-                    //    secondPart.splice(Math.floor(secondPart.length/2));
-                    //    points2D.splice(Math.round(points2D.length/2));
-                    //    points2D.shift();
-                    //    points2D.push(secondPart[secondPart.length-1]);
-                    //    secondPart.push(points2D[points2D.length-1]);
+                    points2D.push(first2D);
                     firstEl.building(objectsForConnect, false, objOfScene);
-                    first2D.building(points2D, true, objOfScene.object2D);
+                    first2D.building(points2D, speed2D, objOfScene.object2D);
                     objOfScene.circle2D.visible = false;
-                    objOfScene.circle2D.buildCircle(objOfScene.circle2D.position, objOfScene.circle2D.radious2d);
-                    //first2D.building(secondPart, true, objOfScene.object2D);
-                    //}else{
-                    //console.log('test');
-                    //points2D.push(first2D);
-                    //}
-
+                    var bgnAngle = ((first2D.angleByCntr) * 180 / Math.PI),
+                        _2dRad = objOfScene.circle2D.radious2d,
+                        _2dPos = objOfScene.circle2D.position,
+                        countOfPnts = objOfScene.listOfPointes.length - 1;
+                    objOfScene.circle2D.buildCircle(_2dPos, _2dRad, bgnAngle, 360/dis,speed2D);
                     break;
                 case 'centeringSphere':
                     objEf = this.effects.centering(sphere);
@@ -2808,15 +2855,17 @@ App.rebuildNodes = function (numer) {
                 } else {
                     this.getIntersectPoints(d);
                 }
-
                 this.startEffect(objOfScene);
+
             }
 
             //final settings for 2d
-            var c = objOfScene.circle2D.position;
+            var c = objOfScene.circle2D.position,
+                _2dOb = App.rebuild2D,
+                scale = (1 + _2dOb.dftAngleSq2DObj.scale + _2dOb.dftAngleSq2DObj.delt * (_2dOb.lstCrtdPl - 1));
             _2dSq.position.set(c.x, c.y, 0.1);
             _2dSq.rotation.set(2.52, 2.36, 0);//parallel to XY -0.6,2.36,0
-            _2dSq.scale.multiplyScalar(1.85);
+            _2dSq.scale.multiplyScalar(scale);//1.85
 
         }//start drawing
     };
@@ -2974,6 +3023,7 @@ App.rebuild2D = {
         point: "rgba(255,255, 255, 1)",
         back: "#0a014c"
     },
+    dftAngleSq2DObj: {scale: 0.22, delt: 0.3, r: {x: 2.53, y: 2.36}},
     lstCrtdPl: 3,
     buildPlate: function (lineSpace) {
         var appObj = App.utils.types,
@@ -3215,8 +3265,8 @@ App.rebuild2D = {
         }
         return objSystmPstn;
     },
-    rebuildFigures: function () {
-        var webglObj = App.utils.types.webgl, listOfFig = webglObj.listObjOfScene;
+    rebuildFigures: function (lineSpace) {
+        var webglObj = App.utils.types.webgl, listOfFig = webglObj.listObjOfScene, _2dOb = App.rebuild2D, calc = _2dOb.dftAngleSq2DObj;
         for (var i = 0; i < listOfFig.length; i++) {
 
 
@@ -3225,23 +3275,25 @@ App.rebuild2D = {
                 tubes = {l: [], m: cur.object2D.tube2D.children[0].material},
                 m = cur.helpers, key = 0;
             //tubes.l.concat(cur.object2D.tube2D.children);
-            cur.listOf2dCord = App.rebuild2D.get2DCoordinat(cur.listOfPointes);
-            tubes.l=cur.listOf2dCord.concat([]);
+            cur.listOf2dCord = _2dOb.get2DCoordinat(cur.listOfPointes);
+            tubes.l = cur.listOf2dCord.concat([]);
 
             //reset the points
+            //console.log(pointes,cur.listOf2dCord[0]);
             for (var pnts = 0; pnts < pointes.length; pnts += 2) {
-                m.draw2DPnts(pointes[pnts], pointes[pnts + 1], key);
-                key++;
+                m.draw2DPnts(pointes[pnts + 1], pointes[pnts], cur.listOf2dCord[key++]);
+                //key++;
             }
             if (cur.listOf2dCord.length > 1) {
                 //reste the tubes
                 cur.object2D.remove(cur.object2D.tube2D);
-                var curVis = cur.object2D.tube2D.visible?true:false;
+                var curVis = cur.object2D.tube2D.visible ? true : false, tbChlds = cur.object2D.tube2D.children;
+                var vis = {v1: tbChlds[0].visible, v2: tbChlds[2].visible};
                 cur.object2D.tube2D = new THREE.Object3D();
                 cur.object2D.add(cur.object2D.tube2D);
                 //cur.object2D.tube2D.visible=curVis;
 
-                m.draw2DConnections( tubes.l, tubes.m, cur.object2D.tube2D);
+                m.draw2DConnections(tubes.l, tubes.m, cur.object2D.tube2D, vis);
 
                 //reset circle
                 cur.object2D.remove(cur.circle2D);
@@ -3253,16 +3305,64 @@ App.rebuild2D = {
 
                 //reset corners
                 var c = cur.circle2D.position,
-                    l = cur.object2D.corner2DIn;
+                    l = cur.object2D.corner2DIn,
+                    lc = cur.object2D.corner2D,
+                    s = cur.object2D.square2D,
+                    corner2DInL = l.children.concat([]),
+                    sq2DInL = s.children.concat([]);
+
+                lc.position.set(c.x, c.y, 0.1);
+                //new poition for lc children
+                var lcChldsPstn = cur.listOf2dCord,
+                    cur2D,
+                    prev2D = lcChldsPstn[0],
+                    lccKey = 0,
+                    lsPstn = lc.position,
+                    arrLast2D = lcChldsPstn[lcChldsPstn.length - 1];
+                for (var lcc = 1; lcc < lcChldsPstn.length && lcc + 1 < lcChldsPstn.length; lcc++) {
+                    cur2D = lcChldsPstn[lcc];
+                    var curPstn = Math.getPositionForValueOfCorner(lcChldsPstn[lcc + 1], cur2D, prev2D, false);
+                    lc.children[lccKey++].position.set(curPstn.x - lsPstn.x, curPstn.y - lsPstn.y, lsPstn.z);
+                    prev2D = lcChldsPstn[lcc];
+                }
+                var curPstn = (Math.getPositionForValueOfCorner(lcChldsPstn[0], arrLast2D, lcChldsPstn[lcChldsPstn.length - 2], false));
+                lc.children[lccKey++].position.set(curPstn.x - lsPstn.x, curPstn.y - lsPstn.y, lsPstn.z);
+                curPstn = (Math.getPositionForValueOfCorner(arrLast2D, lcChldsPstn[0], lcChldsPstn[1], false));
+                lc.children[lccKey++].position.set(curPstn.x - lsPstn.x, curPstn.y - lsPstn.y, lsPstn.z);
+
+
+                cur.object2D.remove(l);
+                var lastV = l.visible;
+                l = cur.object2D.corner2DIn = new THREE.Object3D();
+                l.visible = lastV;
+                cur.object2D.add(l);
                 l.position.set(c.x, c.y, 0.1);
+                l.rotation.set(calc.r.x, calc.r.y, 0);
+                for (var la = 0; la < corner2DInL.length; la++) {
+                    l.add(corner2DInL[la]);
+                }
+
 
                 //reset squares
-                //var s = cur.object2D.square2D;
-                //s.position.set(c.x, c.y, 0.1);
                 cur.object2D.genSquare.position.set(c.x, c.y, 0.1);
+                lastV = s.visible;
+                cur.object2D.remove(s);
+                s = cur.object2D.square2D = new THREE.Object3D();
+                s.visible = lastV;
+                cur.object2D.add(s);
+                s.position.set(c.x, c.y, 0.1);
+                s.rotation.set(calc.r.x, calc.r.y, 0);
+                for (var ls = 0; ls < sq2DInL.length; ls++) {
+                    s.add(sq2DInL[ls]);
+                }
+
+
+                var scale = (1 + calc.scale + calc.delt * (lineSpace - 1));
+                l.scale.multiplyScalar(scale);
+                s.scale.multiplyScalar(scale);
 
             }
-            webglObj._2dConsist.add(listOfFig[i].object2D);
+            webglObj._2dConsist.add(cur.object2D);
         }
     }
 }
@@ -3459,7 +3559,6 @@ App.guiObj = {
 
         this.interfaces.addGenerationFold();
         this.interfaces.generalSetFolders(this.folders.generalSet, App.guiObj.generateParameters);
-        //this.interfaces.general2DSetFolders(this.folders.generalSet);
         //var str = new Date();
         this.interfaces.keysFolderGenerate(this.folders.keysFolder);
         this.folders.keysFolder.__ul.hidden = true;
@@ -3832,11 +3931,11 @@ App.guiObj = {
             generalSet.add(par, 'listTexture', ['NONE', 'mountain', 'siege', 'starfield', 'misty', 'tidepool']).name('Background').onChange(function (val) {
                 App.rebuildSkyBox.changeBackground(val);
             });
-            generalSet.add(par, 'pointDim').min(1).max(5).step(1).name('Points dimension').onChange(function (val) {
+            generalSet.add(par, 'pointDim').min(1).max(5).step(1).name('Points distance').onChange(function (val) {
                 if (val != App.rebuild2D.lstCrtdPl) {
                     App.rebuild2D.lstCrtdPl = val;
                     App.rebuild2D.buildPlate(val);
-                    App.rebuild2D.rebuildFigures();
+                    App.rebuild2D.rebuildFigures(val);
                 }
             });
             generalSet.add(par, 'scale2D').min(0).max(2).step(0.01).name('Scale 2D').onChange(function (val) {
@@ -3996,10 +4095,21 @@ App.guiObj = {
 
                 /*settings for angle 2d positions*/
                 var c = lastObjAd.circle2D.position,
-                    l = lastObjAd.object2D.corner2DIn;
+                    l = lastObjAd.object2D.corner2DIn,
+                    lc = lastObjAd.object2D.corner2D,
+                    _2dOb = App.rebuild2D, calc = _2dOb.dftAngleSq2DObj,
+                    scale = (1 + _2dOb.dftAngleSq2DObj.scale + _2dOb.dftAngleSq2DObj.delt * (_2dOb.lstCrtdPl - 1));
                 l.position.set(c.x, c.y, 0.1);
-                l.rotation.set(2.53, 2.36, 0);//parallel to XY -0.6,2.36,0
-                l.scale.multiplyScalar(1.85);
+                l.rotation.set(calc.r.x, calc.r.y, 0);//parallel to XY -0.6,2.36,0
+                l.scale.multiplyScalar(scale);
+
+                lc.position.set(c.x, c.y, 0.1);
+                var objPos = lc.position;
+                for (var i = 0; i < lc.children.length; i++) {
+                    var curMeshPoj = lc.children[i], pos = curMeshPoj.position;
+                    curMeshPoj.position.set(pos.x - objPos.x, pos.y - objPos.y, pos.z - objPos.z);
+                }
+
 
                 //save to file
                 if (!isloaded && lastObjAd.listOfPointes.length > 3) {
@@ -4444,8 +4554,8 @@ Math.average = function (number) {
 Math.get2DFigureCenter = function (points) {
     var x = 0, y = 0;
     for (var i = 0; i < points.length; i++) {
-        x += points[i].x?points[i].x:points[i][0];
-        y += points[i].y?points[i].y:points[i][0];
+        x += points[i].x ? points[i].x : points[i][0];
+        y += points[i].y ? points[i].y : points[i][0];
     }
     return {x: x / points.length, y: y / points.length};
 }
