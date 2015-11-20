@@ -407,7 +407,8 @@ App.utils = {
         },
         render: function () {
 
-            var type = App.utils.types, webglObj = type.webgl, lastObj = webglObj.listObjOfScene[webglObj.listObjOfScene.length - 1];
+            var type = App.utils.types, webglObj = type.webgl,
+                lastObj = webglObj.listObjOfScene[webglObj.listObjOfScene.length - 1];
 
             if (lastObj) {
                 var camerPos = webglObj.camera.position, /*distCam = Math.sqrt(camerPos.x * camerPos.x + camerPos.y * camerPos.y + camerPos.z * camerPos.z),*/
@@ -436,8 +437,8 @@ App.utils = {
                         var step = webglObj._2dConsist.steps;
                         webglObj._2dConsist.position.x += step.x;
                         webglObj._2dConsist.position.y += step.y;
-                        if (webglObj._2dConsist.endPath > 70) {
-                            webglObj.camera.position.z -= 0.1;
+                        if (webglObj._2dConsist.endPath > 50) {
+                            webglObj.camera.position.z -= lastObj.circle2D.radious2d>6?-0.3:0.07;
                         }
                         /*    var  lifeDistance = Math.getDistBtwTwoPoints(webglObj._2dConsist.position, camerPos)
                          if (lifeDistance > 10) {
@@ -452,13 +453,6 @@ App.utils = {
                     }
 
                 }
-
-                //lastObj.setScaling +=0.3;
-                //for (var i = 0; i < lastObj.particleGroups.length; i++) {
-                //    //lastObj.particleGroups[i].tick(0.016);
-                //    lastObj.particleGroups[i].scale.set(lastObj.setScaling,lastObj.setScaling,lastObj.setScaling);
-                //}
-                //if(particleGroup != undefined) particleGroup.tick(0.016);
 
                 //points fade in
                 if (type.frame < 3) {
@@ -518,7 +512,7 @@ App.utils = {
             var old = addText(obj);
             //old.texture.renderOrder = 1;
             var spriteMaterial = new THREE.SpriteMaterial({
-                map: old.texture, useScreenCoordinates: false, rotation: 0,
+                map: old.texture, /* useScreenCoordinates: false,*/ rotation: 0,
                 transparent: true, opacity: 1.0
             });
 
@@ -654,14 +648,13 @@ App.utils = {
                 geometry.vertices.push(point1);
                 geometry.vertices.push(point2);
             } else {
-                var spline = new THREE.SplineCurve3([point1, point2]);
+                var spline = new THREE.CatmullRomCurve3([point1, point2]);
                 var rad = radious ? radious : 0.01;
                 geometry = new THREE.TubeGeometry(spline, 1, rad, 10); // segment,radius,radiusSegments
             }
             return geometry;
         },//create tubes for obj
         animateObj: function (name) {
-
             var curObjSpeed = App.guiObj.interfaces.getCurObjSpeed(name),
                 curObj = this.getObjByName(name),
                 timeRotate = curObjSpeed.duration * 10, speed = 900,
@@ -728,8 +721,8 @@ App.utils = {
             curObj.rotation.x += x;
             curObj.rotation.y += y;
             curObj.rotation.z += z;
-            curObj.object2D.rotation.x += x;
-            curObj.object2D.rotation.y += y;
+            curObj.object2D.rotation.z += x+y+z;
+            //curObj.object2D.rotation.y += y;
             //curObj.object2D.rotation.z +=z;
             curObj.tipsObject.rotation.x += x;
             curObj.tipsObject.rotation.y += y;
@@ -743,8 +736,8 @@ App.utils = {
             curObj.rotation.y = curObj.rotateRad.y;
             curObj.rotation.z = curObj.rotateRad.z;
 
-            curObj.object2D.rotation.x = curObj.rotateRad.x;
-            curObj.object2D.rotation.y = curObj.rotateRad.y;
+            //curObj.object2D.rotation.z = x+y+z;
+            //curObj.object2D.rotation.y = curObj.rotateRad.y;
 
             curObj.tipsObject.rotation.x = curObj.rotateRad.x;
             curObj.tipsObject.rotation.y = curObj.rotateRad.y;
@@ -1215,7 +1208,8 @@ App.remote = {
 
 }
 
-THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
+
+THREE.Mesh.prototype.building = function (arr, flag, objOfScene, flag1) {
     this.iter = 0;
     this.drawPoints = /*objOfScene.category == 'object2D' ? 1 : */arr.length;
     this.tooltip.visible = true;
@@ -1225,8 +1219,8 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
     /**bang*/
     var geometry = new THREE.Geometry();
     geometry.vertices = currentObject.geometry.vertices;
-    var materials = new THREE.PointCloudMaterial({size: 0.001});
-    var particles = new THREE.PointCloud(geometry, materials);
+    var materials = new THREE.PointsMaterial({size: 0.001});
+    var particles = new THREE.Points(geometry, materials);
     particles.position.set(currentObject.position.x, currentObject.position.y, currentObject.position.z);
     objOfScene.add(particles);
     var bangTime = new Date().getTime() + 300, bang = setInterval(function () {
@@ -1261,11 +1255,11 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
         //}
     } else {
         $.each(arr, function (key, nextObject) {
-            if(flag1){
-                if(key>0){
+            if (flag1) {
+                if (key > 0) {
                     settingsAn(nextObject);
                 }
-            }else{
+            } else {
                 settingsAn(nextObject);
             }
 
@@ -1273,7 +1267,7 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
     }
     function settingsAn(nextObject) {
         var tubeMaterial;// = currentObject.material;
-        var pMaterial = new THREE.PointCloudMaterial({
+        var pMaterial = new THREE.PointsMaterial({
             color: 0xfff000,
             size: 1.5,
             map: THREE.ImageUtils.loadTexture(
@@ -1286,7 +1280,7 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
         var particlesGeo = new THREE.Geometry();
 
         particlesGeo.vertices.push(new THREE.Vector3(0, 0, 0));
-        var pSystem = new THREE.PointCloud(particlesGeo, pMaterial);
+        var pSystem = new THREE.Points(particlesGeo, pMaterial);
         pSystem.dynamic = true;
         pSystem.sortParticles = true;
         var vBegn = currentObject.position, tube;
@@ -1298,7 +1292,7 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
             someIt: 0,
             listLength: arr.length,
             keyP: 0,
-            countOfPoints: currentObject.dst?currentObject.dst:80,
+            countOfPoints: currentObject.dst ? currentObject.dst : 80,
             buildTube: nextObject,
             endTrubeLight: pSystem
         };
@@ -1313,7 +1307,7 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
                 tubeMaterial = truba.material;
                 //var copy =arr.concat([]);
                 //arr = objOfScene.category == 'object2D'?[]:arr;
-               var  timerH = flag?flag:Math.getRandomArbitrary(20, 50);
+                var timerH = flag ? flag : Math.getRandomArbitrary(20, 50);
                 var intBuild = setInterval(function () {
                     objOfScene.add(curPoint.endTrubeLight);
                     return animateBuilding(curPoint)
@@ -1336,15 +1330,15 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
                         if (isCurOvj >= 0 || currentObject.isFirst) {
                             arr.shift();
                             //for 2ld ending animation
-                            if(!arr.length && currentObject.isFirst && objOfScene._2dPnts.length > 3){
+                            if (!arr.length && currentObject.isFirst && objOfScene._2dPnts.length > 3) {
                                 var copy2DPnts = objOfScene._2dPnts.concat([]),
-                                    firstAn =  copy2DPnts.shift();
+                                    firstAn = copy2DPnts.shift();
                                 //copy2DPnts.push(firstAn);
-                                firstAn.isFirst=false;
-                                for(var js = 0;js <copy2DPnts.length;js++){
-                                    copy2DPnts[js].isFirst=false;
+                                firstAn.isFirst = false;
+                                for (var js = 0; js < copy2DPnts.length; js++) {
+                                    copy2DPnts[js].isFirst = false;
                                 }
-                                firstAn.building(copy2DPnts, flag, objOfScene,true);
+                                firstAn.building(copy2DPnts, flag, objOfScene, true);
                             }
                         }
                     }
@@ -1371,12 +1365,12 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene,flag1) {
 
 };
 
-THREE.Mesh.prototype.buildCircle = function (center, radius, bgnAngle, step,speed) {
-    var curObj = this, step = step,//radius < 6 ? 20 / Math.round(radius) : 13 / Math.round(radius),
+THREE.Mesh.prototype.buildCircle = function (center, radius, bgnAngle, steps, speed) {
+    var curObj = this, step = /*radius < 4 ? steps - (steps*0.05):*/steps,
         points = [], drawCount = 0,
         webglObj = App.utils.types.webgl,
         circleLine = new THREE.BufferGeometry(),
-        pMaterial = new THREE.PointCloudMaterial({
+        pMaterial = new THREE.PointsMaterial({
             color: 0xffffff,
             size: 1.5,
             map: THREE.ImageUtils.loadTexture(
@@ -1390,9 +1384,10 @@ THREE.Mesh.prototype.buildCircle = function (center, radius, bgnAngle, step,spee
         rectMesh,
         timerH = speed;//countOfPnts * 50;
     particlesGeo.vertices.push(new THREE.Vector3(0, 0, 0));
-    var pSystem = new THREE.PointCloud(particlesGeo, pMaterial);
+    var pSystem = new THREE.Points(particlesGeo, pMaterial);
     pSystem.dynamic = true;
     pSystem.sortParticles = true;
+    //console.log(steps,step,radius);
 
     /*get points on circle*/
     var bgnAngle = Math.round(bgnAngle),
@@ -1402,10 +1397,10 @@ THREE.Mesh.prototype.buildCircle = function (center, radius, bgnAngle, step,spee
     } else {
         curAng += 180;
     }
-    for (var i = curAng; i < (curAng+step + 361); i += step) {
-            var x = center.x + Math.cos(i * (Math.PI / 180)) * radius,
-                y = center.y + Math.sin(i * (Math.PI / 180)) * radius;
-            points.push([x, y, center.z]);
+    for (var i = curAng; i < (curAng + step + 361); i += step) {
+        var x = center.x + Math.cos(i * (Math.PI / 180)) * radius,
+            y = center.y + Math.sin(i * (Math.PI / 180)) * radius;
+        points.push([x, y, center.z]);
     }
     /*build dunamic geometry**/
     var vertices = new Float32Array(points.length * 3);
@@ -1421,7 +1416,7 @@ THREE.Mesh.prototype.buildCircle = function (center, radius, bgnAngle, step,spee
     webglObj._2dConsist.add(rectMesh);
     webglObj._2dConsist.add(pSystem);
     drawCount = 0;
-
+    //console.log(building);
     var timer = setInterval(function () {
         return drawCircle(curObj);
 
@@ -1432,7 +1427,7 @@ THREE.Mesh.prototype.buildCircle = function (center, radius, bgnAngle, step,spee
             webglObj._2dConsist.remove(rectMesh);
             webglObj._2dConsist.remove(pSystem);
             curObj.visible = true;
-            console.warn('This bullshit was added after add animation for 2d circle!!!')
+            //console.warn('This bullshit was added after add animation for 2d circle!!!')
             clearInterval(timer);
         } else {
             circleLine.setDrawRange(0, drawCount + 1);
@@ -1451,8 +1446,11 @@ App.rebuildNodes = function (numer) {
     /**
      * Variables and objects initialising
      */
-    var objectsForConnect = [], objOfScene, number = App.utils.types.inputNumber, webglObj = App.utils.types.webgl,
-        sendData = {angleTooltips: [], squareTooltips: []};
+    var objectsForConnect = [], objOfScene,
+        number = App.utils.types.inputNumber,
+        webglObj = App.utils.types.webgl,
+        sendData = {angleTooltips: [], squareTooltips: []},
+        isBig=true;
     App.guiObj.listOgAngles = [];
     App.guiObj.listOfSquares = [];
     number = numer;
@@ -1586,29 +1584,21 @@ App.rebuildNodes = function (numer) {
                 objOfScene.tipsObject.add(objOfScene.Sprite);
                 objOfScene.add(objOfScene.pointSphere);
                 objectsForConnect.push(objOfScene.pointSphere);
-
-                var stepEps = 0.05,
-                    circle = new THREE.Mesh(new THREE.RingGeometry(littleR + 0.01, littleR, 32), new THREE.MeshBasicMaterial({
-                        color: 0x9012e8, side: THREE.DoubleSide
-                    }));
-                circle.category = 'point';
-                var sprite = objOfScene.Sprite.clone();
-                sprite.scale.multiplyScalar(2.5);
-                circle.tooltip = sprite;
-                circle.dimensnP = circle;
-                objOfScene.object2D.point2D.add(sprite);
-                objOfScene.object2D.point2D.add(circle);
-                objOfScene.pointSphere.dimensnP = circle;
-
-                objOfScene.helpers.draw2DPnts(circle, sprite, objOfScene.listOf2dCord[key]);
-                /*var cur = objOfScene.listOf2dCord[key];
-                 if (cur) {
-                 circle.position.set(cur.x, cur.y, cur.z);
-                 sprite.position.set(cur.x, cur.y + (stepEps * 5), cur.z + stepEps);
-                 //console.log(sprite);
-                 }
-                 circle.updateMatrixWorld();
-                 sprite.updateMatrixWorld();*/
+                if(isBig) {
+                    var stepEps = 0.05,
+                        circle = new THREE.Mesh(new THREE.RingGeometry(littleR + 0.01, littleR, 32), new THREE.MeshBasicMaterial({
+                            color: 0x9012e8, side: THREE.DoubleSide
+                        }));
+                    circle.category = 'point';
+                    var sprite = objOfScene.Sprite.clone();
+                    sprite.scale.multiplyScalar(2.5);
+                    circle.tooltip = sprite;
+                    circle.dimensnP = circle;
+                    objOfScene.object2D.point2D.add(sprite);
+                    objOfScene.object2D.point2D.add(circle);
+                    objOfScene.pointSphere.dimensnP = circle;
+                    objOfScene.helpers.draw2DPnts(circle, sprite, objOfScene.listOf2dCord[key]);
+                }
 
 
             });
@@ -1667,10 +1657,12 @@ App.rebuildNodes = function (numer) {
              }
              }
              };*/
-            var id_tub = 0, lastObj = objectsForConnect.length - 2,
+            var id_tub = 0,
+                lastObj = objectsForConnect.length - 2,
                 mat = new THREE.MeshBasicMaterial({
                     color: 0xffffff, side: THREE.DoubleSide
-                }), tubeMaterial = new THREE.MeshNormalMaterial(),
+                }),
+                tubeMaterial = new THREE.MeshNormalMaterial(),
                 _2dCord = objOfScene.listOf2dCord.concat([]);
             while (objectsForConnect.length) {
                 var currentObject = objectsForConnect.shift(), inner = false;
@@ -1706,7 +1698,9 @@ App.rebuildNodes = function (numer) {
                     objOfScene.add(line);
                 });
             }
-            this.draw2DConnections(_2dCord, mat, objOfScene.object2D.tube2D);
+            if(isBig) {
+                this.draw2DConnections(_2dCord, mat, objOfScene.object2D.tube2D);
+            }
             //for 2d
             //var str = objOfScene.listOf2dCord[objOfScene.listOf2dCord.length - 1],
             //    mat = new THREE.LineBasicMaterial({
@@ -1772,14 +1766,15 @@ App.rebuildNodes = function (numer) {
             objOfScene.sphere.renderOrder = 2;
             objOfScene.add(objOfScene.sphere);
 
-            if (number.toString().length > 3) {
+            if (!isBig) {
                 objOfScene.sphere.position.set(sphereCenter.c_xy, sphereCenter.c_xy, sphereCenter.c_z);
                 //objOfScene.circle2D.position.set(sphereCenter.c_xy, sphereCenter.c_xy, sphereCenter.c_z);
             } else {
                 objOfScene.sphere.position.set(circleCenter, circleCenter, circleCenter);
                 //objOfScene.circle2D.position.set(circleCenter, circleCenter, circleCenter);
+                this.draw2DCircle(objOfScene, false, true);
             }
-            this.draw2DCircle(objOfScene, false, true);
+
 
         },// draw sphere on screen
         draw2DCircle: function (objOfScene, mat, vis) {
@@ -1790,7 +1785,7 @@ App.rebuildNodes = function (numer) {
             var matr = mat ? mat : new THREE.MeshBasicMaterial({
                 color: 0x9012e8, side: THREE.DoubleSide, wireframe: true
             });
-            objOfScene.circle2D = new THREE.Mesh(new THREE.RingGeometry(radious2d + 0.05, radious2d, 200), matr);
+            objOfScene.circle2D = new THREE.Mesh(new THREE.TorusGeometry(radious2d , 0.01, 30,200), matr);
             objOfScene.circle2D.radious2d = radious2d;
             objOfScene.circle2D.updateMatrixWorld();
             objOfScene.circle2D.visible = vis;
@@ -1815,7 +1810,9 @@ App.rebuildNodes = function (numer) {
                 objOfScene.add(objOfScene.shapeObj);
 
                 //2d
-                this.draw2DShape(objOfScene, materials);
+                if(isBig) {
+                    this.draw2DShape(objOfScene, materials);
+                }
             }
         },// draw shape on screen
         draw2DShape: function (objOfScene, materials) {
@@ -2597,16 +2594,17 @@ App.rebuildNodes = function (numer) {
                         return a.angleByCntr > b.angleByCntr
                     });
                     //get thre all distance btw points
-                    var dis= 0,deltaSc =10,dst,
-                    speed2D = 130/Math.floor(objOfScene.circle2D.radious2d*deltaSc);
-                    speed2D = speed2D <deltaSc?speed2D*deltaSc:speed2D;
-                    for(var i=0;i<points2D.length;i++){
-                        if(i+1<points2D.length){
-                            points2D[i].dst = Math.round(Math.getDistBtwTwoPoints(points2D[i].position,points2D[i+1].position)*deltaSc);
-                        }else{
-                            points2D[i].dst = Math.round(Math.getDistBtwTwoPoints(points2D[i].position,points2D[0].position)*deltaSc) ;
+                    var dis = 0, deltaSc = 10, dst,
+                        speed2D = 130 / Math.floor(objOfScene.circle2D.radious2d * deltaSc);
+                    speed2D = speed2D < deltaSc ? speed2D * deltaSc : speed2D;
+                    for (var i = 0; i < points2D.length; i++) {
+                        if (i + 1 < points2D.length) {
+                            points2D[i].dst = Math.round(Math.getDistBtwTwoPoints(points2D[i].position, points2D[i + 1].position) * deltaSc);
+                        } else {
+                            points2D[i].dst = Math.round(Math.getDistBtwTwoPoints(points2D[i].position, points2D[0].position) * deltaSc);
                         }
                         dis += points2D[i].dst;
+                        points2D[i].dst -= i;
                     }
                     for (var i = 0; i < list2DTbe.length; i++) {
                         list2DTbe[i].visible = false;
@@ -2622,7 +2620,7 @@ App.rebuildNodes = function (numer) {
                         _2dRad = objOfScene.circle2D.radious2d,
                         _2dPos = objOfScene.circle2D.position,
                         countOfPnts = objOfScene.listOfPointes.length - 1;
-                    objOfScene.circle2D.buildCircle(_2dPos, _2dRad, bgnAngle, 360/dis,speed2D);
+                    objOfScene.circle2D.buildCircle(_2dPos, _2dRad, bgnAngle, 360 / dis, speed2D);
                     break;
                 case 'centeringSphere':
                     objEf = this.effects.centering(sphere);
@@ -2801,6 +2799,7 @@ App.rebuildNodes = function (numer) {
             objOfScene.updateMatrixWorld();
             App.utils.types.webgl.listObjOfScene.push(objOfScene);
 
+            objOfScene.isHuge = isBig = number.toString().length == 3;
             this.drawPoints(resArr, number);
             this.drawConnections(objectsForConnect);
             this.drawCircle(number);
@@ -2824,7 +2823,7 @@ App.rebuildNodes = function (numer) {
                 webglObj._2dConsist.position.set(webglObj._dftControl.x, webglObj._dftControl.y, -45);
                 webglObj.camera.position.z = -15;
             }
-            if (number.toString().length == 3) {
+            if (isBig) {
                 App.utils.types.frame = 0;
                 var loaded = false;
                 if ((  loaded = App.remote.data)) {
@@ -2857,15 +2856,16 @@ App.rebuildNodes = function (numer) {
                 }
                 this.startEffect(objOfScene);
 
+         //final settings for 2d
+                var c = objOfScene.circle2D.position,
+                    _2dOb = App.rebuild2D,
+                    scale = (1 + _2dOb.dftAngleSq2DObj.scale + _2dOb.dftAngleSq2DObj.delt * (_2dOb.lstCrtdPl - 1));
+                _2dSq.position.set(c.x, c.y, 0.1);
+                _2dSq.rotation.set(2.52, 2.36, 0);//parallel to XY -0.6,2.36,0
+                _2dSq.scale.multiplyScalar(scale);//1.85
             }
 
-            //final settings for 2d
-            var c = objOfScene.circle2D.position,
-                _2dOb = App.rebuild2D,
-                scale = (1 + _2dOb.dftAngleSq2DObj.scale + _2dOb.dftAngleSq2DObj.delt * (_2dOb.lstCrtdPl - 1));
-            _2dSq.position.set(c.x, c.y, 0.1);
-            _2dSq.rotation.set(2.52, 2.36, 0);//parallel to XY -0.6,2.36,0
-            _2dSq.scale.multiplyScalar(scale);//1.85
+
 
         }//start drawing
     };
@@ -3268,101 +3268,101 @@ App.rebuild2D = {
     rebuildFigures: function (lineSpace) {
         var webglObj = App.utils.types.webgl, listOfFig = webglObj.listObjOfScene, _2dOb = App.rebuild2D, calc = _2dOb.dftAngleSq2DObj;
         for (var i = 0; i < listOfFig.length; i++) {
+            var cur = listOfFig[i];
+            if(cur.isHuge) {
+                var pointes = cur.object2D.point2D.children,
+                    tubes = {l: [], m: cur.object2D.tube2D.children[0].material},
+                    m = cur.helpers, key = 0;
+                //tubes.l.concat(cur.object2D.tube2D.children);
+                cur.listOf2dCord = _2dOb.get2DCoordinat(cur.listOfPointes);
+                tubes.l = cur.listOf2dCord.concat([]);
 
+                //reset the points
+                //console.log(pointes,cur.listOf2dCord[0]);
+                for (var pnts = 0; pnts < pointes.length; pnts += 2) {
+                    m.draw2DPnts(pointes[pnts + 1], pointes[pnts], cur.listOf2dCord[key++]);
+                    //key++;
+                }
+                if (cur.listOf2dCord.length > 1) {
+                    //reste the tubes
+                    cur.object2D.remove(cur.object2D.tube2D);
+                    var curVis = cur.object2D.tube2D.visible ? true : false, tbChlds = cur.object2D.tube2D.children;
+                    var vis = {v1: tbChlds[0].visible, v2: tbChlds[2].visible};
+                    cur.object2D.tube2D = new THREE.Object3D();
+                    cur.object2D.add(cur.object2D.tube2D);
+                    //cur.object2D.tube2D.visible=curVis;
 
-            var cur = listOfFig[i],
-                pointes = cur.object2D.point2D.children,
-                tubes = {l: [], m: cur.object2D.tube2D.children[0].material},
-                m = cur.helpers, key = 0;
-            //tubes.l.concat(cur.object2D.tube2D.children);
-            cur.listOf2dCord = _2dOb.get2DCoordinat(cur.listOfPointes);
-            tubes.l = cur.listOf2dCord.concat([]);
+                    m.draw2DConnections(tubes.l, tubes.m, cur.object2D.tube2D, vis);
 
-            //reset the points
-            //console.log(pointes,cur.listOf2dCord[0]);
-            for (var pnts = 0; pnts < pointes.length; pnts += 2) {
-                m.draw2DPnts(pointes[pnts + 1], pointes[pnts], cur.listOf2dCord[key++]);
-                //key++;
-            }
-            if (cur.listOf2dCord.length > 1) {
-                //reste the tubes
-                cur.object2D.remove(cur.object2D.tube2D);
-                var curVis = cur.object2D.tube2D.visible ? true : false, tbChlds = cur.object2D.tube2D.children;
-                var vis = {v1: tbChlds[0].visible, v2: tbChlds[2].visible};
-                cur.object2D.tube2D = new THREE.Object3D();
-                cur.object2D.add(cur.object2D.tube2D);
-                //cur.object2D.tube2D.visible=curVis;
+                    //reset circle
+                    cur.object2D.remove(cur.circle2D);
+                    m.draw2DCircle(cur, cur.circle2D.material, cur.circle2D.visible);
 
-                m.draw2DConnections(tubes.l, tubes.m, cur.object2D.tube2D, vis);
+                    //reset figure
+                    cur.object2D.remove(cur.shape2D);
+                    m.draw2DShape(cur, [cur.shape2D.material]);
 
-                //reset circle
-                cur.object2D.remove(cur.circle2D);
-                m.draw2DCircle(cur, cur.circle2D.material, cur.circle2D.visible);
+                    //reset corners
+                    var c = cur.circle2D.position,
+                        l = cur.object2D.corner2DIn,
+                        lc = cur.object2D.corner2D,
+                        s = cur.object2D.square2D,
+                        corner2DInL = l.children.concat([]),
+                        sq2DInL = s.children.concat([]);
 
-                //reset figure
-                cur.object2D.remove(cur.shape2D);
-                m.draw2DShape(cur, [cur.shape2D.material]);
-
-                //reset corners
-                var c = cur.circle2D.position,
-                    l = cur.object2D.corner2DIn,
-                    lc = cur.object2D.corner2D,
-                    s = cur.object2D.square2D,
-                    corner2DInL = l.children.concat([]),
-                    sq2DInL = s.children.concat([]);
-
-                lc.position.set(c.x, c.y, 0.1);
-                //new poition for lc children
-                var lcChldsPstn = cur.listOf2dCord,
-                    cur2D,
-                    prev2D = lcChldsPstn[0],
-                    lccKey = 0,
-                    lsPstn = lc.position,
-                    arrLast2D = lcChldsPstn[lcChldsPstn.length - 1];
-                for (var lcc = 1; lcc < lcChldsPstn.length && lcc + 1 < lcChldsPstn.length; lcc++) {
-                    cur2D = lcChldsPstn[lcc];
-                    var curPstn = Math.getPositionForValueOfCorner(lcChldsPstn[lcc + 1], cur2D, prev2D, false);
+                    lc.position.set(c.x, c.y, 0.1);
+                    //new poition for lc children
+                    var lcChldsPstn = cur.listOf2dCord,
+                        cur2D,
+                        prev2D = lcChldsPstn[0],
+                        lccKey = 0,
+                        lsPstn = lc.position,
+                        arrLast2D = lcChldsPstn[lcChldsPstn.length - 1];
+                    for (var lcc = 1; lcc < lcChldsPstn.length && lcc + 1 < lcChldsPstn.length; lcc++) {
+                        cur2D = lcChldsPstn[lcc];
+                        var curPstn = Math.getPositionForValueOfCorner(lcChldsPstn[lcc + 1], cur2D, prev2D, false);
+                        lc.children[lccKey++].position.set(curPstn.x - lsPstn.x, curPstn.y - lsPstn.y, lsPstn.z);
+                        prev2D = lcChldsPstn[lcc];
+                    }
+                    var curPstn = (Math.getPositionForValueOfCorner(lcChldsPstn[0], arrLast2D, lcChldsPstn[lcChldsPstn.length - 2], false));
                     lc.children[lccKey++].position.set(curPstn.x - lsPstn.x, curPstn.y - lsPstn.y, lsPstn.z);
-                    prev2D = lcChldsPstn[lcc];
+                    curPstn = (Math.getPositionForValueOfCorner(arrLast2D, lcChldsPstn[0], lcChldsPstn[1], false));
+                    lc.children[lccKey++].position.set(curPstn.x - lsPstn.x, curPstn.y - lsPstn.y, lsPstn.z);
+
+
+                    cur.object2D.remove(l);
+                    var lastV = l.visible;
+                    l = cur.object2D.corner2DIn = new THREE.Object3D();
+                    l.visible = lastV;
+                    cur.object2D.add(l);
+                    l.position.set(c.x, c.y, 0.1);
+                    l.rotation.set(calc.r.x, calc.r.y, 0);
+                    for (var la = 0; la < corner2DInL.length; la++) {
+                        l.add(corner2DInL[la]);
+                    }
+
+
+                    //reset squares
+                    cur.object2D.genSquare.position.set(c.x, c.y, 0.1);
+                    lastV = s.visible;
+                    cur.object2D.remove(s);
+                    s = cur.object2D.square2D = new THREE.Object3D();
+                    s.visible = lastV;
+                    cur.object2D.add(s);
+                    s.position.set(c.x, c.y, 0.1);
+                    s.rotation.set(calc.r.x, calc.r.y, 0);
+                    for (var ls = 0; ls < sq2DInL.length; ls++) {
+                        s.add(sq2DInL[ls]);
+                    }
+
+
+                    var scale = (1 + calc.scale + calc.delt * (lineSpace - 1));
+                    l.scale.multiplyScalar(scale);
+                    s.scale.multiplyScalar(scale);
+
                 }
-                var curPstn = (Math.getPositionForValueOfCorner(lcChldsPstn[0], arrLast2D, lcChldsPstn[lcChldsPstn.length - 2], false));
-                lc.children[lccKey++].position.set(curPstn.x - lsPstn.x, curPstn.y - lsPstn.y, lsPstn.z);
-                curPstn = (Math.getPositionForValueOfCorner(arrLast2D, lcChldsPstn[0], lcChldsPstn[1], false));
-                lc.children[lccKey++].position.set(curPstn.x - lsPstn.x, curPstn.y - lsPstn.y, lsPstn.z);
-
-
-                cur.object2D.remove(l);
-                var lastV = l.visible;
-                l = cur.object2D.corner2DIn = new THREE.Object3D();
-                l.visible = lastV;
-                cur.object2D.add(l);
-                l.position.set(c.x, c.y, 0.1);
-                l.rotation.set(calc.r.x, calc.r.y, 0);
-                for (var la = 0; la < corner2DInL.length; la++) {
-                    l.add(corner2DInL[la]);
-                }
-
-
-                //reset squares
-                cur.object2D.genSquare.position.set(c.x, c.y, 0.1);
-                lastV = s.visible;
-                cur.object2D.remove(s);
-                s = cur.object2D.square2D = new THREE.Object3D();
-                s.visible = lastV;
-                cur.object2D.add(s);
-                s.position.set(c.x, c.y, 0.1);
-                s.rotation.set(calc.r.x, calc.r.y, 0);
-                for (var ls = 0; ls < sq2DInL.length; ls++) {
-                    s.add(sq2DInL[ls]);
-                }
-
-
-                var scale = (1 + calc.scale + calc.delt * (lineSpace - 1));
-                l.scale.multiplyScalar(scale);
-                s.scale.multiplyScalar(scale);
-
+                webglObj._2dConsist.add(cur.object2D);
             }
-            webglObj._2dConsist.add(cur.object2D);
         }
     }
 }
@@ -3377,6 +3377,7 @@ App.guiObj = {
     maxNumber: 999,
     gui: null,//GUI obj
     animateSpeedOfObj: [],
+    digitN: false,
     folders: {
         menuFolder: null,
         generationFolder: null,
@@ -3396,7 +3397,12 @@ App.guiObj = {
         number: 0,
         coords: '',
         generate: function () {
-            //var start = new Date();
+            var gui = App.guiObj,fldrs=gui.folders;
+            for(var folder in fldrs ){
+                if(folder != 'menuFolder' && fldrs[folder]){
+                    fldrs[folder].close();
+                }
+            }
             App.remote.getByName(App.numberWorker.generate(App.guiObj.name), function () {
                 App.rebuildNodes(App.guiObj.name);
                 if (!App.guiObj.isSceneNotEmpty) {
@@ -3581,15 +3587,12 @@ App.guiObj = {
         });
 
         revoModeFolder.add(generateParameters, 'startAnimation').name('Begin');
+
     },
     interfaces: {
         addGenerationFold: function () {
             var generationFolder = App.guiObj.folders.generationFolder,
                 numberField = App.guiObj.numberField,
-                maxNumber = App.guiObj.maxNumber,
-                btn = App.guiObj.btn,
-                coord = App.guiObj.folders.coord,
-                item = App.guiObj.item,
                 generateParameters = App.guiObj.generateParameters;
             generationFolder.add(generateParameters, 'effects', ['building', 'centeringSphere', 'centeringTriangle', 'shaders']).onChange(function (val) {
                 App.utils.types.animaEffect = val;
@@ -3602,44 +3605,40 @@ App.guiObj = {
              webglObj.dimensn = false;
              }
              });*/
-            generationFolder.add(generateParameters, 'moreThan3').name('> 3-digit number').onChange(function (flag) {
-                generationFolder.__controllers.slice(generationFolder.__controllers.indexOf(numberField), 1);
-                $('.cr.number.has-slider').eq(0).remove();
-                generateParameters.number = 0;
-                flag ? maxNumber = 99999 : maxNumber = 999;
-                numberField = generationFolder.add(generateParameters, 'number').min(100).max(maxNumber).step(1).name('Enter Coordinates:')
-                    .onChange(function (val) {
-                        inputingNumber(val)
-                    });
-            });
-
+            this.addDigitNumber();
             numberField = generationFolder.add(generateParameters, 'number').min(100).max(999).step(1).name('Enter Coordinates:')
                 .onChange(function (val) {
-                    inputingNumber(val)
+                    App.guiObj.interfaces.inputingNumber(val);
                 });
 
-            function inputingNumber(number) {
-                var listOfPoints = App.utils.types.listOfPoints;
-                if (!App.guiObj.isGeneratePointAvialaable) {
-                    App.guiObj.isGeneratePointAvialaable = true;
-                    coord = App.guiObj.folders.coord = App.guiObj.folders.generationFolder.addFolder('Coordinates');
+
+        },
+        inputingNumber: function (number) {
+            var listOfPoints = App.utils.types.listOfPoints;
+            var generationFolder = App.guiObj.folders.generationFolder,
+                btn = App.guiObj.btn,
+                coord = App.guiObj.folders.coord,
+                item = App.guiObj.item,
+                generateParameters = App.guiObj.generateParameters;
+            if (!App.guiObj.isGeneratePointAvialaable) {
+                App.guiObj.isGeneratePointAvialaable = true;
+                coord = App.guiObj.folders.coord = App.guiObj.folders.generationFolder.addFolder('Coordinates');
+            }
+            App.guiObj.name = number;
+            if (!isNaN(number)) {
+                if (listOfPoints) App.guiObj.interfaces.clearGenerationFolder(generationFolder, item, btn);
+                inputNumber = number;
+                App.utils.types.listOfPoints = listOfPoints = App.numberWorker.generate(inputNumber);
+                for (var i = 0; i < listOfPoints.length; i++) {
+                    generateParameters.coords[i] = []
+                    generateParameters.coords = listOfPoints[i][0] + ',' + listOfPoints[i][1] + ',' + listOfPoints[i][2];
+                    item[i] = coord.add(generateParameters, 'coords').name('Coordinate ' + i);
                 }
-                App.guiObj.name = number;
-                if (!isNaN(number)) {
-                    if (listOfPoints) App.guiObj.interfaces.clearGenerationFolder(generationFolder, item, btn);
-                    inputNumber = number//(name.toString().length > 3) ? Math.round(name) : number;
-                    App.utils.types.listOfPoints = listOfPoints = App.numberWorker.generate(inputNumber);
-                    for (var i = 0; i < listOfPoints.length; i++) {
-                        generateParameters.coords[i] = []
-                        generateParameters.coords = listOfPoints[i][0] + ',' + listOfPoints[i][1] + ',' + listOfPoints[i][2];
-                        item[i] = coord.add(generateParameters, 'coords').name('Coordinate ' + i);
-                    }
-                    btn = generationFolder.add(generateParameters, 'generate');
+                    App.guiObj.btn=btn = generationFolder.add(generateParameters, 'generate');
                     btn.name('Create!');
-                } else {
-                    alert('Please, input a three-digit number.')
-                }
-            };
+            } else {
+                alert('Please, input a three-digit number.')
+            }
         },
         clearGenerationFolder: function (generationFolder, item, btn) {
             var listOfPoints = App.utils.types.listOfPoints;
@@ -3649,7 +3648,10 @@ App.guiObj = {
                     generationFolder.remove(item[i])
                 }
             }
-            if (listOfPoints && btn)generationFolder.remove(btn)
+            if (listOfPoints && btn){
+                generationFolder.remove(btn);
+                App.guiObj.btn=false;
+            }
         },
         addEditInfo: function (number) {
             var editParameters = {
@@ -3682,6 +3684,25 @@ App.guiObj = {
             lastCheck.addEl(nam, true, lastCheck.point);
             lastCheck.addEl(nam, true, lastCheck.angle);
             lastCheck.addEl(nam, true, lastCheck.square);
+
+
+            /*folder events*/
+            $(curFigure.domElement).bind('click',function(){
+            var gui = App.guiObj,fldrs=gui.folders,flag =true;
+               for(var folder in fldrs ){
+                  if(flag){
+                      flag = false;
+                  }else{
+                      fldrs[folder].close();
+                  }
+
+               }
+                for(var editFl in fldrs.editFolder.__folders){
+                    fldrs.editFolder.__folders[editFl].close();
+                }
+                fldrs.editFolder.open();
+               curFigure.open();
+            });
 
             /*   curFigure.add(editParameters.figure, 'bla',-0.6).min(-10.01).max(10.01).step(0.01).name(' R_x').onChange(function (val) {
              App.utils.types.webgl.listObjOfScene[0].object2D.corner2DIn.rotation.x =val;
@@ -3938,10 +3959,28 @@ App.guiObj = {
                     App.rebuild2D.rebuildFigures(val);
                 }
             });
-            generalSet.add(par, 'scale2D').min(0).max(2).step(0.01).name('Scale 2D').onChange(function (val) {
-                App.utils.types.webgl._2dConsist.scale.multiplyScalar(val);
-            });
+            //generalSet.add(par, 'scale2D').min(0).max(2).step(0.01).name('Scale 2D').onChange(function (val) {
+            //    App.utils.types.webgl._2dConsist.scale.multiplyScalar(val);
+            //});
             $(".hue-field").width(10);
+        },
+        addDigitNumber: function () {
+            var generationFolder = App.guiObj.folders.generationFolder,
+                numberField = App.guiObj.numberField,
+                maxNumber = App.guiObj.maxNumber,
+                generateParameters = App.guiObj.generateParameters;
+            App.guiObj.digitN = generationFolder.add(generateParameters, 'moreThan3').name('> 3-digit number').onChange(function (flag) {
+                generationFolder.__controllers.slice(generationFolder.__controllers.indexOf(numberField), 1);
+                $('.cr.number.has-slider').eq(0).remove();
+                generateParameters.number = 0;
+                flag ? maxNumber = 99999 : maxNumber = 999;
+                App.guiObj.maxNumber = maxNumber;
+                numberField = generationFolder.add(generateParameters, 'number').min(100).max(maxNumber).step(1).name('Enter Coordinates:')
+                    .onChange(function (val) {
+                        App.guiObj.interfaces.inputingNumber(val);
+                    });
+            });
+
         },
         clearFolder: function (folder) {
             for (var i = 0; i < folder.length; i++) {
@@ -4075,7 +4114,7 @@ App.guiObj = {
 
                 //add and create main angles
                 for (var i = 0; i < figureSet.angle.length; i++) {
-                    figData.angle = figureSet.angle[i] + '\xB0';
+                    figData.angle = isloaded ? figureSet.angle[i].text_f : figureSet.angle[i] + '\xB0';
                     mainAngles.add(figData, 'angle').name('Angle ' + i).__input.disabled = true;
                     if (!isloaded) {
                         figureSet.anglePos[i].z += 0.1;
@@ -4144,16 +4183,25 @@ App.guiObj = {
             figureAnimateSet.close();
         },
         changeStructure: function (dimension) {
-            var nameF = 'General Settings', genFold = App.guiObj.folders.menuFolder;
+            var nameF = 'General Settings',
+                gui =App.guiObj,
+                fold = gui.folders,
+                genFold =fold.menuFolder;
             if (genFold) {
                 genFold.__folders[nameF].__ul.remove();
                 delete  genFold.__folders[nameF];
             }
-            App.guiObj.folders.generalSet = App.guiObj.folders.menuFolder.addFolder(nameF);
+            fold.generalSet = fold.menuFolder.addFolder(nameF);
             if (dimension) {
-                App.guiObj.interfaces.generalSetFolders(App.guiObj.folders.generalSet, App.guiObj.generateParameters);
+                gui.interfaces.generalSetFolders(fold.generalSet, gui.generateParameters);
+                fold.generationFolder.remove(gui.digitN);
+                this.addDigitNumber();
             } else {
-                App.guiObj.interfaces.general2DSetFolders(App.guiObj.folders.generalSet);
+            if(gui.maxNumber.toString().length>3){
+                gui.digitN.__checkbox.click();
+            }
+                gui.interfaces.general2DSetFolders(fold.generalSet);
+                fold.generationFolder.remove(gui.digitN);
             }
 
         }
@@ -4634,7 +4682,9 @@ function isReady() {
         App.utils.interfaces.backControls(back);
     });
     $('input:radio').click(function (val) {
-        var webglObj = App.utils.types.webgl, listObj = webglObj.listObjOfScene, lastObj = listObj[listObj.length - 1];
+        var webglObj = App.utils.types.webgl,
+            listObj = webglObj.listObjOfScene,
+            lastObj = listObj[listObj.length - 1];
         webglObj.controls.reset();
         //App.utils.interfaces.setView(val.currentTarget.value);
         if (val.currentTarget.value == '3D') {
@@ -4659,9 +4709,8 @@ function isReady() {
             }
             webglObj._2dConsist.visible = false;
         } else {
+
             webglObj.renderer.setClearColor(webglObj.lastBavkColor, 1);
-            //webglObj._2dConsist.position.x=webglObj._dftControl.x;
-            //webglObj._2dConsist.position.y=webglObj._dftControl.y;
             var cur2d = webglObj._2dConsist.position;
             webglObj._dimension = false;
             webglObj.camera.position.set(webglObj._dftControl.x, webglObj._dftControl.y, -15);
@@ -4673,7 +4722,7 @@ function isReady() {
             webglObj.controls.maxDistance = 40//App.rebuild2D.lstCrtdPl < 4 ? 40 : 50;
             webglObj.cameraFixed = true;
             webglObj._2dConsist.visible = true;
-            if (listObj.length > 0) {
+            if (listObj.length > 0 && lastObj.isHuge) {
                 //lastObj.visible = false;
                 var cur = {}, cir = {};
                 cur.x = webglObj._dftControl.x,
@@ -4696,6 +4745,7 @@ function isReady() {
     $('#THREEJS canvas').mousedown(function () {
         if (App.utils.types.autoRotate) App.utils.types.autoR.__li.click();
     });
+
     App.utils.events.staticResize();
 }
 
