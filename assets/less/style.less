@@ -188,6 +188,7 @@ div #collapseMenu{
 .dg .c .slider:hover {
     background: #eee!important;;
 }
+ul .closed{height:28px!important;}
 #test{
     .set_size(100%,100%,absolute,0,0);
     .z(-10);
@@ -204,12 +205,37 @@ div #collapseMenu{
     canvas {
         margin: auto;
     }
-
+//    color: #faffc1;
 }
-
+#info,#infoSphere{display: none}
+#infoFig{
+    position: fixed;
+//    margin: auto;
+    max-width: 310px;
+    overflow: auto;
+    .z(1);
+    div{
+        height: inherit;
+        padding: 5px 5px 0 5px;
+        border-top-right-radius: 15px;
+        position: relative;
+        background-color: #ffffff;
+        float:left;
+    }
+}
+.list-group-item{
+    padding: 5px 5px!important;
+}
 //media
-@media only screen and (min-width: 0px) and (max-width: 990px) {
+@media only screen and (min-width: 420px) and (max-width: 990px) {
     #fond h1{
         font-size: 25px;
+    }
+}
+@media only screen and (min-width: 0px) and (max-width: 420px) {
+    #fond h1{
+        font-size: 25px;
+    }
+    #infoFig{
     }
 }

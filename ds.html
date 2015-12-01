@@ -26,11 +26,7 @@
     $('#iframediv').html('<iframe id="myid" style="position: relative;  width: 100%; height: 100%;" align="left" frameborder="0" src="iframe.html"/>');
     $('iframe#myid').load(function () {
         $(".container-loader").fadeOut();
-        var thisO= window.frames[0];
-        thisO.inputNumber=376;
-        thisO.App.utils.types.listOfPoints=[[3,7,6],[3,6,7],[6,3,7],[7,3,6],[7,6,3],[6,7,3]];
-        thisO.App.guiObj.name=376;
-        thisO.App.guiObj.generateParameters.generate();;
+        console.log(window.frames[0].App.guiObj.btn);
     });
 </script>
 </body>

@@ -3,8 +3,9 @@
 <head >
     <meta charset="utf-8">
 
-    <link rel="stylesheet" type="text/css" href="assets/css/style.min.css" />
+    <link rel="stylesheet" type="text/css" href="assets/less/style.css" />
     <link rel="stylesheet" href="assets/css/preload.css">
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
 
     <!--<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">-->
     <!--<link rel="stylesheet" href="assets/css/bootstrap.min.css">-->
@@ -12,13 +13,22 @@
     <!--<script src="http://webgl.unilimes.com/project/dhiru/vendor/jquery/jquery-1.10.2.min.js" type="text/javascript"></script>-->
     <script src="assets/js/jquery.min.js" type="text/javascript"></script>
     <!--<script src="http://webgl.unilimes.com/project/dhiru/vendor/threejs/js/three.min.js"></script>-->
-    <script src="node_modules/three/three.min.js"></script>
+    <script src="assets/js/build/three.min.js"></script>
     <script src="assets/js/bootstrap.min.js"></script>
     <script src="assets/js/TrackballControls.js"></script>
     <script src="assets/js/jscolor/jscolor.js"></script>
     <script src="assets/js/dat.gui.js"></script>
     <script src="assets/js/ConvexGeometry.js"></script>
     <script src="assets/js/build/ColladaLoader.js"></script>
+    <script src="assets/js/postprocessing/EffectComposer.js"></script>
+    <script src="assets/js/postprocessing/MaskPass.js"></script>
+    <script src="assets/js/postprocessing/RenderPass.js"></script>
+    <script src="assets/js/postprocessing/ShaderPass.js"></script>
+    <!--<script src="assets/js/shaders/TriangleBlurShader.js"></script>-->
+    <script src="assets/js/shaders/HorizontalBlurShader.js"></script>
+    <script src="assets/js/shaders/CopyShader.js"></script>
+    <script src="assets/js/shaders/FocusShader.js"></script>
+    <script src="assets/js/shaders/EdgeShader.js"></script>
     <!--<script src="assets/js/extra.js"></script>-->
 
     <!--<script src="assets/js/less.min.js" type="text/javascript"></script>-->
@@ -122,6 +132,24 @@
 </div>
 <div id="THREEJS" >
 </div>
+<div id="infoFig" >
+    <div id="info">
+        <div  class="list-group" id="infoL">
+            <a href="#" class="list-group-item active" id="info4"></a>
+            <a href="#" class="list-group-item " id="info1"></a>
+            <a href="#"class="list-group-item" id="info2"></a>
+            <a href="#"class="list-group-item" id="info3"></a>
+        </div >
+        <!--<p><span id="infoCount"></span> Inner Tubes</p>-->
+        <!--<p>Summ of length tubes = <span id="infoLength">0</span> mm</p>-->
+        <!--<p>Current figure = <span id="infoName">none</span></p>-->
+    </div>
+    <!--<div id="infoSphere">-->
+        <!--<p>V = <span id="infoV">0</span></p>-->
+        <!--<p>Square = <span id="infoS">0</span> </p>-->
+        <!--<p>Current figure = <span id="infoSName">none</span></p>-->
+    <!--</div>-->
+</div>
 <div id="test"></div>
 
 <div class="main-navbar">
@@ -215,7 +243,13 @@
         </div>
     </div>
 </div>
+<!------------------------------------------app-------------------->
 <script src="assets/js/app/App.js"></script>
+<script src="assets/js/app/utils.js"></script>
+<script src="assets/js/app/buildFig.js"></script>
+<script src="assets/js/app/build2D.js"></script>
+<script src="assets/js/app/guiobj.js"></script>
+
 <!--<script src="assets/js/ParticleEngine.js"></script>-->
 <!--<script src="assets/js/ParticleEngineExamples.js"></script>-->
 <script src="assets/js/ShaderParticles.min.js"></script>
