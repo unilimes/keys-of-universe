@@ -3,7 +3,7 @@ App.rebuild2D = {
         point: "rgba(255,255, 255, 1)",
         back: "#0a014c"
     },
-    dftAngleSq2DObj: {scale: 0.22, delt: 0.3, r: {x: 2.53, y: 2.36}},
+    dftAngleSq2DObj: {scale: 0.22, delt: 0.3, r: {x: 2.525, y: 2.357}},
     lstCrtdPl: 3,
     buildPlate: function (lineSpace) {
         var appObj = App.utils.types,
@@ -140,25 +140,6 @@ App.rebuild2D = {
             curJ += rowShift;
         }
         App.utils.types.webgl._system = _system;
-        /*  var point =['506','605','650','560','065','056'] ,startPos={};
-         ctx.fillStyle = "#E20E00";
-         ctx.beginPath();
-         for(var i=0;i<point.length;i++){
-         for(var j=0;j<_system.length;j++){
-         if(point[i] == _system[j].name){
-         if(!startPos.y){
-         startPos.x =_system[j].pos.x;
-         startPos.y =_system[j].pos.y;
-         ctx.moveTo( startPos.x,startPos.y);
-         }else{
-         ctx.lineTo(_system[j].pos.x,_system[j].pos.y);
-         }
-         break;
-         }
-         }
-         }
-         ctx.lineTo(startPos.x,startPos.y);
-         ctx.stroke();*/
         return canvas;
     },
     addFigure: function (points) {
@@ -258,10 +239,8 @@ App.rebuild2D = {
                 tubes.l = cur.listOf2dCord.concat([]);
 
                 //reset the points
-                //console.log(pointes,cur.listOf2dCord[0]);
                 for (var pnts = 0; pnts < pointes.length; pnts += 2) {
                     m.draw2DPnts(pointes[pnts + 1], pointes[pnts], cur.listOf2dCord[key++]);
-                    //key++;
                 }
                 if (cur.listOf2dCord.length > 1) {
                     //reste the tubes
@@ -269,6 +248,7 @@ App.rebuild2D = {
                     var curVis = __obj2D.tube2D.visible ? true : false, tbChlds = __obj2D.tube2D.children;
                     var vis = {v1: tbChlds[0].visible, v2: tbChlds[2].visible};
                     __obj2D.tube2D = new THREE.Object3D();
+                    __obj2D.tube2D.position.z = 28;
                     __obj2D.add(__obj2D.tube2D);
 
                     m.draw2DConnections(tubes.l, tubes.m, __obj2D.tube2D, vis);
@@ -344,8 +324,8 @@ App.rebuild2D = {
 
 
                     var scale = (1 + calc.scale + calc.delt * (lineSpace - 1));
-                    l.scale.multiplyScalar(scale);
-                    s.scale.multiplyScalar(scale);
+                    l.scale.multiplyScalar(scale + 0.1);
+                    s.scale.multiplyScalar(scale + 0.004);
 
                     //redraw general summ
                     var lstVsGS = __obj2D.genSumm.visible ? true : false;
@@ -368,20 +348,23 @@ App.rebuild2D = {
                     }
 
                     //reset subfigures
-                   var copy_smmplFgr = {c:__obj2D.smmplFgr.children.concat([]),ch:__obj2D.smmplFgr.childs.concat([])};
+                    var copy_smmplFgr = {
+                        c: __obj2D.smmplFgr.children.concat([]),
+                        ch: __obj2D.smmplFgr.childs.concat([])
+                    };
                     __obj2D.remove(__obj2D.smmplFgr);
-                    var _2dSmFgr =__obj2D.smmplFgr= new THREE.Object3D();
+                    var _2dSmFgr = __obj2D.smmplFgr = new THREE.Object3D();
                     _2dSmFgr.category = 'smmplFgr';
                     _2dSmFgr.childs = [];
                     _2dSmFgr.updateMatrixWorld();
                     __obj2D.add(_2dSmFgr);
-                    for(var sFI=0;sFI<copy_smmplFgr.c.length;sFI++){
+                    for (var sFI = 0; sFI < copy_smmplFgr.c.length; sFI++) {
                         _2dSmFgr.add(copy_smmplFgr.c[sFI]);
                         _2dSmFgr.childs.push(copy_smmplFgr.ch[sFI]);
                     }
                     _2dSmFgr.position.set(c.x, c.y, 0.01);
-                    _2dSmFgr.rotation.set(2.52, 2.36, 0);
-                    _2dSmFgr.scale.multiplyScalar( scale+0.12);
+                    _2dSmFgr.rotation.set(calc.r.x, calc.r.y, 0);
+                    _2dSmFgr.scale.multiplyScalar(scale + 0.9);
 
                 }
                 webglObj._2dConsist.add(__obj2D);

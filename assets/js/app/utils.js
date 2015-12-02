@@ -131,7 +131,8 @@ App.utils = {
                 mouseVector = webglObj.mouseVector,
                 listObjOfScene = webglObj.listObjOfScene,
                 lstIntrs = webglObj.lstIntrs,
-                isFlasg = types.currentCluckEffect == 'flashing';
+                isFlasg = types.currentCluckEffect == 'flashing',
+                dmS = webglObj._dimension;
 
             if (webglObj._2dConsist) {
                 webglObj._2dConsist.canMove = false;
@@ -146,6 +147,8 @@ App.utils = {
 
             if (listObjOfScene.length > 0) {
                 var objIntr = [];
+
+                //objects for intersect
                 for (var i = 0; i < listObjOfScene.length; i++) {
                     var curFg = listObjOfScene[i], curChils = [];
                     if (curFg.visible) {
@@ -161,7 +164,7 @@ App.utils = {
                                 }
                             }
 
-                            for(var pI=0;pI<curFg.pointsArray.length;pI++){
+                            for (var pI = 0; pI < curFg.pointsArray.length; pI++) {
                                 objIntr.push(curFg.pointsArray[pI]);
                             }
                         } else {
@@ -173,43 +176,58 @@ App.utils = {
                             for (var sd = 0; sd < curFg.object2D.smmplFgr.childs.length; sd++) {
                                 objIntr.push(curFg.object2D.smmplFgr.childs[sd]);
                             }
-                            for (var sd = 0; sd < curFg.object2D.point2D.children.length; sd++) {
-                                objIntr.push(curFg.object2D.point2D.children[sd]);
+                            var points2D = curFg.object2D.point2D.children;
+                            for (var sd = 0; sd < points2D.length; sd++) {
+                                if (points2D[sd].category == "point")objIntr.push(points2D[sd]);
                             }
 
                         }
                     }
                 }
+
                 projector.linePrecision = 5;
                 var intersect = projector.intersectObjects(objIntr)[0],
-                    val1,val2, val3, val4, parent,
-                    eff =  utils.interfaces.effects;
+                    val1, val2, val3, val4, parent,
+                    eff = utils.interfaces.effects;
                 projector.linePrecision = 1;
+
                 if (intersect && intersect.object) {
-                    //console.log(intersect);
-                    var cat =intersect.object.category;
+                    var cat = intersect.object.category,
+                        pMaterial = new THREE.PointsMaterial({
+                            color: 0xFAFFC1,
+                            size: 0.3,
+                            map: types.textures[0],
+                            blending: THREE.AdditiveBlending,
+                            depthTest: false,
+                            opacity: 1,
+                            transparent: true
+                        }),
+                        particlesGeo = new THREE.Geometry(),
+                        pSystem = new THREE.Points(particlesGeo, pMaterial);
+                    pSystem.visible = false;
+
+                    //type of object intersexted
                     if (cat == 'tube') {
-                        var innerTubes = [], inner = intersect.object.inner,
-                            tubesArray = webglObj._dimension ? intersect.object.parent.tubesArray : intersect.object.parent.children;
+                        var innerTubes = [],
+                            inner = intersect.object.inner,
+                            tubesArray = webglObj._dimension ? intersect.object.parent.tubesArray : intersect.object.parent.children,
+                            isFigLittle = tubesArray.length == 3,
+                            tubesType = false;
+                        if (isFigLittle) {
+                            tubesType = 'InOut';
+                        } else {
+                            if (inner) {
+                                tubesType = 'OUTER';
+                            } else {
+                                tubesType = 'INNER';
+                            }
+                        }
                         for (var itb = 0; itb < tubesArray.length; itb++) {
                             if (tubesArray[itb].inner == inner)innerTubes.push(tubesArray[itb]);
                         }
-                        var /*innerTubes = intersect.object.innerTubes,*/
-                            innerTxt = tubesArray.length == 3 || inner ? 'Outer ' : 'Inner ',
-                            summ = 0;
-                        var pMaterial = new THREE.PointsMaterial({
-                                color: 0xFAFFC1,
-                                size: 0.3,
-                                map: THREE.ImageUtils.loadTexture(
-                                    "assets/img/particleA.png"
-                                ),
-                                blending: THREE.AdditiveBlending,
-                                depthTest: false,
-                                opacity: isFlasg?0.2:1,
-                                transparent: true
-                            }),
-                            particlesGeo = new THREE.Geometry(),
-                            isAlreadyLight = lstIntrs;
+                        var innerTxt = isFigLittle || inner ? 'Outer ' : 'Inner ',
+                            summ = 0, isAlreadyLight = lstIntrs;
+
                         for (var s = 0; s < innerTubes.length; s++) {
                             var p1 = innerTubes[s].vBegn, p2 = innerTubes[s].vEnd;
                             var curS = Math.getDistBtwTwoPoints(p1, p2), countOfPoints = curS / 0.05;
@@ -225,44 +243,49 @@ App.utils = {
                             particlesGeo.vertices.push(p1);
                             particlesGeo.vertices.push(p2);
                         }
-                        var pSystem = new THREE.Points(particlesGeo, pMaterial);
-                        pSystem.visible = false;
+                        pMaterial.size = webglObj._dimension ? 0.4 : 2;
 
-                        lstIntrs = App.utils.types.webgl.lstIntrs = innerTubes[0].parent;
+
+                        if (isFlasg) {
+                            pMaterial.opacity = 0.2;
+                            if (webglObj._dimension) {
+                                lstIntrs = App.utils.types.webgl.lstIntrs = innerTubes[0].parent;
+                            } else {
+                                lstIntrs = App.utils.types.webgl.lstIntrs = innerTubes[0].parent.parent;
+                            }
+
+                        } else {
+                            lstIntrs = App.utils.types.webgl.lstIntrs = innerTubes[0].parent;
+                        }
                         lstIntrs.add(pSystem);
                         lstIntrs.typesC = types.currentCluckEffect;
                         lstIntrs.pSystem = pSystem;
+                        lstIntrs.tubesType = tubesType;
                         val1 = innerTxt + "&nbsp<span class=\"badge\">" + innerTubes.length + "</span>";
                         val2 = 'Summ of length tubes   ' + "&nbsp<span class=\"badge\">" + summ.toFixed(2) + ' mm' + "</span>";
                         val3 = 'Figure name ' + "&nbsp<span class=\"badge\">" + intersect.object.parent.name + "</span>",
                             val4 = 'Tubes';
 
-                        eff(types.currentCluckEffect, {objOfScene:intersect.object.parent,rad:0.01});
+                        eff(types.currentCluckEffect, {
+                            objOfScene: intersect.object.parent,
+                            rad: webglObj._dimension ? 0.01 : 0.03,
+                            tubesType: tubesType
+                        });
                     }
                     else if (cat == 'circle') {
                         var spher = intersect.object;
                         val1 = 'V = ' + "&nbsp<span class=\"badge\">" + (4 / 3 * Math.PI * Math.pow(spher.rd, 3)).toFixed(2) + ' mm\xB3' + "</span>";
                         val2 = 'S = ' + "&nbsp<span class=\"badge\">" + (4 * Math.PI * Math.pow(spher.rd, 2)).toFixed(2) + ' mm\xB2' + "</span>";
                         val3 = 'Figure name ' + "&nbsp<span class=\"badge\">" + intersect.object.parent.name + "</span>", val4 = 'Circle';
-                        var pMaterial = new THREE.PointsMaterial({
-                                color: 0xFAFFC1,
-                                size: spher.rd * 5.5,
-                                map: THREE.ImageUtils.loadTexture(
-                                    "assets/img/particleA.png"
-                                ),
-                                blending: THREE.AdditiveBlending,
-                                depthTest: false,
-                                transparent: true
-                            }),
-                            particlesGeo = new THREE.Geometry();
+
+                        pMaterial.size = spher.rd * 5.5;
                         particlesGeo.vertices.push(spher.position.clone());
-                        var pSystem = new THREE.Points(particlesGeo, pMaterial);
-                        pSystem.visible=false;
+
                         lstIntrs = App.utils.types.webgl.lstIntrs = spher.parent;
                         lstIntrs.typesC = spher.category;
                         lstIntrs.add(pSystem);
                         lstIntrs.pSystem = pSystem;
-                       eff('fillTransper', {obj:spher,sys:pSystem,type:'UP'});
+                        eff('fillTransper', {obj: spher, sys: pSystem, type: 'UP'});
                     }
                     else if (cat == 'subFigure') {
                         var subFigure = intersect.object, inf = subFigure.dataInfo;
@@ -272,40 +295,43 @@ App.utils = {
                         val1 = "Square = " + "&nbsp<span class=\"badge\">" + inf.sq + ' mm\xB2' + "</span>",
                             val2 = "Angles :" + "&nbsp<span class=\"badge\">" + inf.angls + "</span>",
                             val3 = 'Perimeter = ' + "&nbsp<span class=\"badge\">" + inf.pr + ' mm' + "</span>",
-                            val4 = 'Sub Figure' ;
-                        eff('fillTransper', {obj:subFigure, type:'UP'});
+                            val4 = 'Sub Figure';
+                        eff('fillTransper', {obj: subFigure, type: 'UP'});
                     }
-                    else if(cat == "points"){
+                    else if (cat == "points" || cat == "point") {
+
                         var point = intersect.object,
-                            pointsOb = point.parent.pointsArray?point.parent.pointsArray:point.parent.object2D.point2D.children;
+                            pointsOb = dmS ? point.parent.pointsArray : point.parent.children;
                         lstIntrs = App.utils.types.webgl.lstIntrs = point.parent;
-                        lstIntrs.typesC = cat;
+                        lstIntrs.typesC = 'points';
 
-                        var pMaterial = new THREE.PointsMaterial({
-                                color: 0xFAFFC1,
-                                size: 0.9,
-                                map: THREE.ImageUtils.loadTexture(
-                                    "assets/img/particleA.png"
-                                ),
-                                blending: THREE.AdditiveBlending,
-                                depthTest: false,
-                                opacity: 1,
-                                transparent: true
-                            }),
-                            particlesGeo = new THREE.Geometry();
-                        for (var s = 0; s < pointsOb.length; s++) {
+                        pMaterial.size = 0.9;
+
+                        if (!dmS) {
+                            var copyP = [];
+                            for (var s = 0; s < pointsOb.length; s++) {
+                                if (pointsOb[s].category == 'point') {
+                                    copyP.push(pointsOb[s]);
+                                    particlesGeo.vertices.push(pointsOb[s].position);
+                                }
+                            }
+                            pointsOb = copyP;
+                        } else {
+                            for (var s = 0; s < pointsOb.length; s++) {
                                 particlesGeo.vertices.push(pointsOb[s].position);
-                        }
-                        var pSystem = new THREE.Points(particlesGeo, pMaterial);
-                        pSystem.visible = false;
-                        lstIntrs.pSystem=pSystem;
-                        lstIntrs.add(pSystem);
 
+                            }
+
+                        }
+
+                        lstIntrs.pSystem = pSystem;
+                        lstIntrs.add(pSystem);
+                        var figName = dmS ? lstIntrs.name : lstIntrs.parent.name;
                         val1 = 'Numbers : ' + "&nbsp<span class=\"badge\">" + lstIntrs.pointsInfo.str + "</span>";
                         val2 = 'Summ = ' + "&nbsp<span class=\"badge\">" + lstIntrs.pointsInfo.sum + "</span>";
-                        val3 = 'Figure name ' + "&nbsp<span class=\"badge\">" + lstIntrs.name + "</span>", val4 = 'Points';
+                        val3 = 'Figure name ' + "&nbsp<span class=\"badge\">" + figName + "</span>", val4 = 'Points';
 
-                        eff('scalingPoints', {obj:pointsOb, type:'UP'});
+                        eff('scalingPoints', {obj: pointsOb, type: 'UP'});
                     }
 
                     if (val1) {
@@ -405,7 +431,9 @@ App.utils = {
         autoRotate: true,
         mouse: {},
         accessPoint: [],
+        textures: [],
         _2dPlateSize: {x: 44.8, y: 21.3},
+        rotateTo2D: {x: 2.525, y: 2.357},
         webgl: {
             scene: null,
             _dimension: '3D',
@@ -539,14 +567,15 @@ App.utils = {
             webglObj.scene.add(webglObj.camera);
             webglObj.container = document.getElementById('THREEJS');
 
+            //load textures
+            typrs.textures.push(THREE.ImageUtils.loadTexture(
+                "assets/img/particleA.png"
+            ));
+
             // lights
             webglObj.light = new THREE.DirectionalLight(0x4444cc, 2);
             webglObj.light.intensity = 0;
             webglObj.light.position.set(10, 10, 10).normalize();
-            //light.shadowCameraVisible = true;
-
-            //webglObj.light.shadowDarkness = 0;
-            //webglObj.light.castShadow = false;
             webglObj.light.intensity = 1;
 
             webglObj.scene.add(webglObj.light);
@@ -559,14 +588,10 @@ App.utils = {
                 preserveDrawingBuffer: true,
                 alpha: true
             });
-
             renderer.autoClear = false;
-            //renderer.shadowMapType = THREE.PCFSoftShadowMap;
-            //webglObj.renderer.shadowMapEnabled = false;
             renderer.setClearColor(0x0a014c, 1);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
-
             renderer.clear();
 
             // cube
@@ -602,35 +627,32 @@ App.utils = {
 
             //shaders
             /*var hBlur = typrs.hBlur = new THREE.ShaderPass(THREE.HorizontalBlurShader);
-            hBlur.enabled = false;
-            hBlur.uniforms.h.value = (1 / window.innerHeight)/0.5;
-            var focusShader = typrs.focusShader = new THREE.ShaderPass(THREE.FocusShader);
-            focusShader.enabled = false;
-            focusShader.uniforms.screenWidth.value = window.innerWidth;
-            focusShader.uniforms.screenHeight.value = window.innerHeight;
-            focusShader.uniforms.waveFactor.value = 0.0044;
-            focusShader.uniforms.sampleDistance.value = 2;
-            var edgeAspect = 1024,
-                edgeShader = typrs.edgeShader = new THREE.ShaderPass(THREE.EdgeShader);
-            edgeShader.enabled = false;
-            edgeShader.uniforms.aspect.value = new THREE.Vector2(edgeAspect, edgeAspect);
+             hBlur.enabled = false;
+             hBlur.uniforms.h.value = (1 / window.innerHeight)/0.5;
+             var focusShader = typrs.focusShader = new THREE.ShaderPass(THREE.FocusShader);
+             focusShader.enabled = false;
+             focusShader.uniforms.screenWidth.value = window.innerWidth;
+             focusShader.uniforms.screenHeight.value = window.innerHeight;
+             focusShader.uniforms.waveFactor.value = 0.0044;
+             focusShader.uniforms.sampleDistance.value = 2;
+             var edgeAspect = 1024,
+             edgeShader = typrs.edgeShader = new THREE.ShaderPass(THREE.EdgeShader);
+             edgeShader.enabled = false;
+             edgeShader.uniforms.aspect.value = new THREE.Vector2(edgeAspect, edgeAspect);
 
-            var renderPass = webglObj.renderPass = new THREE.RenderPass(webglObj.scene, webglObj.camera);
-            var effectCopy = new THREE.ShaderPass(THREE.CopyShader);
-            effectCopy.renderToScreen = true;
-            var composer = webglObj.composer = new THREE.EffectComposer(renderer);
-            composer.addPass(renderPass);
-            composer.addPass(hBlur);
-            composer.addPass(focusShader);
-            composer.addPass(edgeShader);
-            //composer.addPass(tri);
-            composer.addPass(effectCopy);*/
+             var renderPass = webglObj.renderPass = new THREE.RenderPass(webglObj.scene, webglObj.camera);
+             var effectCopy = new THREE.ShaderPass(THREE.CopyShader);
+             effectCopy.renderToScreen = true;
+             var composer = webglObj.composer = new THREE.EffectComposer(renderer);
+             composer.addPass(renderPass);
+             composer.addPass(hBlur);
+             composer.addPass(focusShader);
+             composer.addPass(edgeShader);
+             //composer.addPass(tri);
+             composer.addPass(effectCopy);*/
 
             //gui
             App.guiObj.init();
-
-            //effects
-
 
             //events
             window.addEventListener('resize', App.utils.events.onWindowResize, false);
@@ -1228,43 +1250,63 @@ App.utils = {
 
         },
         resetTooltipInfo: function () {
-            var ut =  App.utils,
+            var ut = App.utils,
                 webglObj = ut.types.webgl,
                 lstIntrs = webglObj.lstIntrs;
             if (lstIntrs) {
                 //light
-                if(lstIntrs.anObj){
+                if (lstIntrs.anObj) {
                     lstIntrs.remove(lstIntrs.anObj);
-                    lstIntrs.anObj=false;
+                    lstIntrs.anObj = false;
                 }
 
-                switch (lstIntrs.typesC){
-                    case 'circle':{
+                switch (lstIntrs.typesC) {
+                    case 'circle':
+                    {
                         lstIntrs.remove(lstIntrs.pSystem);
-                        ut.interfaces.effects('fillTransper', {obj:lstIntrs.sphere, type:'DOWN'});
+                        ut.interfaces.effects('fillTransper', {obj: lstIntrs.sphere, type: 'DOWN'});
                         break;
                     }
-                    case 'subFigure':{
-                    ut.interfaces.effects('fillTransper', {obj:lstIntrs, type:'DOWN',vis:true});
-                    break;
+                    case 'subFigure':
+                    {
+                        ut.interfaces.effects('fillTransper', {obj: lstIntrs, type: 'DOWN', vis: true});
+                        break;
                     }
-                    case 'flashing':{
-                    ut.interfaces.effects('flashing', {type:'DOWN' });
-                    break;
-                }
-                    case 'scaling':{
-                    ut.interfaces.effects('scaling', {type:'DOWN',rad:0.01*6 });
-                    break;
-                }
-                    case 'points':{
-                    var pointsOb = webglObj._dimension?lstIntrs.pointsArray:lstIntrs.object2D.point2D.children;
+                    case 'flashing':
+                    {
+                        ut.interfaces.effects('flashing', {type: 'DOWN'});
+                        break;
+                    }
+                    case 'scaling':
+                    {
+                        var delta = 0.01 * 6;
+                        ut.interfaces.effects('scaling', {
+                            type: 'DOWN',
+                            rad: (webglObj._dimension ? (delta) : (0.03 + delta))
+                        });
+                        break;
+                    }
+                    case 'points':
+                    {
+                        var pointsOb = lstIntrs.pointsArray;
                         lstIntrs.remove(lstIntrs.pSystem);
-                    ut.interfaces.effects('scalingPoints', {obj:pointsOb, type:'DOWN'});
-                    break;
-                }
-                    default  :{
-                    lstIntrs.remove(lstIntrs.pSystem);
-                }
+                        if (!webglObj._dimension) {
+                            lstIntrs.parent.remove(lstIntrs.pSystem);
+                            var copyP = [], pointsOb = lstIntrs.children;
+                            for (var s = 0; s < pointsOb.length; s++) {
+                                if (pointsOb[s].category == 'point') {
+                                    copyP.push(pointsOb[s]);
+                                }
+                            }
+                            pointsOb = copyP;
+                        }
+                        ut.interfaces.effects('scalingPoints', {obj: pointsOb, type: 'DOWN'});
+                        break;
+                    }
+                    default  :
+                    {
+                        lstIntrs.remove(lstIntrs.pSystem);
+                    }
                 }
                 $('#info').css('display', 'none');
                 App.utils.types.webgl.lstIntrs = false;
@@ -1272,8 +1314,8 @@ App.utils = {
 
 
         },
-        disableElementsOfFigue:function(objOfScene,flag){
-           var  objectsForConnect =[],vis = flag?true:false;
+        disableElementsOfFigue: function (objOfScene, flag) {
+            var objectsForConnect = [], vis = flag ? true : false;
             for (var l = 0; l < objOfScene.pointsArray.length; l++) {
                 if (objOfScene.pointsArray[l].category == 'points') {
                     objectsForConnect.push(objOfScene.pointsArray[l])
@@ -1288,10 +1330,18 @@ App.utils = {
             }
             return objectsForConnect;
         },
+        get2dPoints: function (arr) {
+            var points = [];
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i].category == "point")points.push(arr[i]);
+            }
+            return points;
+        },
         effects: function (type, par) {
-            var ut=App.utils,
-                typrs =ut.types,
-                eff = ut.interfaces.effectTypes;
+            var ut = App.utils,
+                typrs = ut.types,
+                intr = ut.interfaces,
+                eff = intr.effectTypes;
 
             switch (type) {
                 case 'focusShader':
@@ -1309,119 +1359,140 @@ App.utils = {
                     typrs.edgeShader.enabled = par.enabled;
                     break;
                 }
-                case 'fill':{
-                    var objectsForConnect = App.utils.interfaces.disableElementsOfFigue(par.objOfScene,true),
-                        firstElem = objectsForConnect.shift();
+                case 'fill':
+                {
+                    var objectsForConnect = typrs.webgl._dimension ? intr.disableElementsOfFigue(par.objOfScene, true) : intr.get2dPoints(par.objOfScene.parent.point2D.children),
+                        len = objectsForConnect.length + 0;
+
+                    for (var i = 0; i < objectsForConnect.length; i++) {
+                        objectsForConnect[i].isDrawed = false;
+                    }
+
+                    var firstElem = objectsForConnect.shift();
+                    if (par.tubesType == "INNER") {
+                        objectsForConnect.push(objectsForConnect[0]);
+                    }
                     var animatObj = par.objOfScene.anObj = new THREE.Object3D();
                     par.objOfScene.add(animatObj);
-                    firstElem.building(objectsForConnect, false, animatObj,false,1);
+                    firstElem.building(objectsForConnect, false, animatObj, false, 1, par.tubesType);
                     break;
                 }
-                case 'scaling':{
+                case 'scaling':
+                {
                     eff.scaling(par);
                     break;
                 }
-                case 'flashing':{
+                case 'flashing':
+                {
                     eff.flashing(par);
-                break;
-            }
-                case 'scalingPoints':{
+                    break;
+                }
+                case 'scalingPoints':
+                {
                     eff.scalingPoints(par);
                     break;
                 }
-                case 'fillTransper':{
+                case 'fillTransper':
+                {
                     eff.fillTransper(par);
                     break;
                 }
             }
 
         },
-        effectTypes:{
-            scaling:function(par) {
+        effectTypes: {
+            scaling: function (par) {
                 var type = par.type,
-                    tubes = App.utils.types.webgl.lstIntrs.tubesArray,
+                    webgl = App.utils.types.webgl,
+                    tubes = webgl._dimension ? webgl.lstIntrs.tubesArray : webgl.lstIntrs.children,
+                    lastT = webgl.lstIntrs.tubesType,
                     rad = par.rad,
-                    d= 0,
+                    d = 0,
                     delta = 0.01,
                     tubeLine = App.utils.interfaces.tubeLineGeometry;
                 if (type == "DOWN") {
-                    delta *=-1;
+                    delta *= -1;
                 }
-                //console.log(tubes);
-                var sc = setInterval(function (){
-                    if(d++>5){
+                var sc = setInterval(function () {
+                    if (d++ > 5) {
                         clearInterval(sc);
-                    }else{
-                        for(var y=0;y<tubes.length;y++){
-                            tubes[y].geometry = tubeLine(tubes[y].line.vBegn,tubes[y].line.vEnd,false,rad);
+                    } else {
+                        for (var y = 0; y < tubes.length; y++) {
+                            if (tubes[y].vBegn) {
+                                if ((tubes[y].inner && lastT == "OUTER") ||
+                                    (!tubes[y].inner && lastT == "INNER") ||
+                                    (lastT == "InOut")
+                                ) {
+                                    tubes[y].geometry = tubeLine(tubes[y].vBegn, tubes[y].vEnd, false, rad);
+                                }
+                            }
                         }
                         rad += delta;
                     }
-                },20);
+                }, 20);
             },
-            scalingPoints:function(par){
+            scalingPoints: function (par) {
                 var bgn = 5,
                     end = 0,
                     delta = 1.1,
-                     down =(par.type == "DOWN"),
-                    sc=down?1/delta:delta,
-                    obj = par.obj ;
-                var scaling = setInterval(function(){
-                    if(end++ >= bgn){
+                    down = (par.type == "DOWN"),
+                    sc = down ? 1 / delta : delta,
+                    obj = par.obj;
+                var scaling = setInterval(function () {
+                    if (end++ >= bgn) {
                         var parent = obj[0].parent;
                         parent.pSystem.visible = true;
                         parent.pSystem.updateMatrixWorld();
                         clearInterval(scaling);
-                    }else{
-                        for(var i =0;i<obj.length;i++){
+                    } else {
+                        for (var i = 0; i < obj.length; i++) {
                             obj[i].scale.multiplyScalar(sc);
                         }
                     }
-                },50);
+                }, 50);
             },
-            fillTransper:function(par){
+            fillTransper: function (par) {
                 var type = par.type,
-                    obj= par.obj,
-                    sys= par.sys,
-                    vis= par.vis,
-                    delta =0.05,step=0;
-                if(type == 'DOWN'){
-                    delta *=-1;
+                    obj = par.obj,
+                    sys = par.sys,
+                    vis = par.vis,
+                    delta = 0.05, step = 0;
+                if (type == 'DOWN') {
+                    delta *= -1;
                 }
-                var end =10, fill = setInterval(function(){
-                    if(step++>end){
-                        if(sys)sys.visible=true;
-                        if(vis)obj.parent.visible=false;
+                var end = 10, fill = setInterval(function () {
+                    if (step++ > end) {
+                        if (sys)sys.visible = true;
+                        if (vis)obj.parent.visible = false;
                         clearInterval(fill);
-                    }else{
+                    } else {
                         obj.material.opacity += delta;
                     }
 
-                },20);
+                }, 20);
             },
-            flashing: function(par){
+            flashing: function (par) {
                 var type = par.type,
-                    delta =0.05,
-                 ut =  App.utils,
-                    lstIntrs =ut.types.webgl.lstIntrs,
+                    delta = 0.05,
+                    ut = App.utils,
+                    lstIntrs = ut.types.webgl.lstIntrs,
                     down = type == 'DOWN';
-                if(down){
-                    delta *=-1;
+                if (down) {
+                    delta *= -1;
                 }
-                var s= lstIntrs.pSystem;
-                if(s){
+                var s = lstIntrs.pSystem;
+                if (s) {
                     s.visible = true;
-                    var end =0;
-                    var flash= setInterval(function(){
-                        if(end++ >20)
-                        {
-                            if(down)lstIntrs.remove(s);
+                    var end = 0;
+                    var flash = setInterval(function () {
+                        if (end++ > 20) {
+                            if (down)lstIntrs.remove(s);
                             clearInterval(flash);
-                        }else{
-                            s.material.opacity +=delta;
+                        } else {
+                            s.material.opacity += delta;
                         }
 
-                    },30);
+                    }, 30);
                 }
             }
         },

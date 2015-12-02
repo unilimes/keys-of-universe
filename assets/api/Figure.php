@@ -11,7 +11,7 @@ class Figure
 
     function saveFigureData($data, $type, $name)
     {
-        if (!empty($data) && !empty($type) && !empty($name)) {
+        if (!empty($data) &&  !empty($name)) {
             $data = json_encode($data);
             if ($type == 'objOfScene') {
                 $fp = fopen($this->filepath . "figures/" . $name . ".json", "w");

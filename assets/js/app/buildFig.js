@@ -181,7 +181,7 @@ App.rebuildNodes = function (numer) {
                 objectsForConnect.push(objOfScene.pointSphere);
                 if (isBig) {
                     var stepEps = 0.05,
-                        circle = new THREE.Mesh(new THREE.RingGeometry(littleR + 0.01, littleR, 32), new THREE.MeshBasicMaterial({
+                        circle = new THREE.Mesh(new THREE.TorusGeometry(littleR, 0.01, 30, 200), new THREE.MeshBasicMaterial({
                             color: 0x9012e8, side: THREE.DoubleSide
                         }));
                     circle.category = 'point';
@@ -214,7 +214,7 @@ App.rebuildNodes = function (numer) {
             var cur = list;
             if (cur) {
                 circle.position.set(cur.x, cur.y, cur.z);
-                sprite.position.set(cur.x, cur.y + (stepEps * 5), cur.z + stepEps);
+                sprite.position.set(cur.x, cur.y + (stepEps * 5), 29);
                 //console.log(sprite);
             }
             circle.updateMatrixWorld();
@@ -399,7 +399,7 @@ App.rebuildNodes = function (numer) {
             pos2d.z = objOfScene.listOf2dCord[0].z;
             var radious2d = Math.getDistBtwTwoPoints(pos2d, objOfScene.listOf2dCord[0]);
             var matr = mat ? mat : new THREE.MeshBasicMaterial({
-                color: 0x9012e8, side: THREE.DoubleSide, wireframe: true
+                color: 0x9012e8, side: THREE.DoubleSide, wireframe: true, transparent: true, opacity: 0.3
             });
             objOfScene.circle2D = new THREE.Mesh(new THREE.TorusGeometry(radious2d, 0.01, 30, 200), matr);
             objOfScene.circle2D.radious2d = radious2d;
@@ -1405,6 +1405,7 @@ App.rebuildNodes = function (numer) {
             var utils = App.utils, types = utils.types, objEf, factor = radiusOfMainSphere / 50, sphere = new THREE.SphereGeometry(radiusOfMainSphere + 1, 36, 36), scale = 0.0;
             switch (types.animaEffect) {
                 case 'building':
+                {
                     objEf = {ef: 1};
                     var objectsForConnect = [], points2D = [];
                     objOfScene.pointsArray.concat([]);
@@ -1457,6 +1458,7 @@ App.rebuildNodes = function (numer) {
                         countOfPnts = objOfScene.listOfPointes.length - 1;
                     objOfScene.circle2D.buildCircle(_2dPos, _2dRad, bgnAngle, 360 / dis, speed2D);
                     break;
+                }
                 case 'centeringSphere':
                     objEf = this.effects.centering(sphere);
                     objEf.ef = 2;
@@ -1632,9 +1634,9 @@ App.rebuildNodes = function (numer) {
             }
             objOfScene.listOfPointes = pointes;
             objOfScene.updateMatrixWorld();
-            App.utils.types.webgl.listObjOfScene.push(objOfScene);
-
             objOfScene.isHuge = isBig = number.toString().length == 3;
+
+            App.utils.types.webgl.listObjOfScene.push(objOfScene);
             this.drawPoints(resArr, number);
             this.drawConnections(objectsForConnect);
             this.drawCircle(number);
@@ -1662,7 +1664,7 @@ App.rebuildNodes = function (numer) {
                 App.utils.types.autoRotate = true;
                 var loaded = false;
                 if ((  loaded = App.remote.data)) {
-                    //draw angles and squares
+                    //draw angles and squares and subfigures
                     var l = {
                         square: loaded.squareTooltips.pop().square,
                         angle: [],
@@ -1693,27 +1695,27 @@ App.rebuildNodes = function (numer) {
                 } else {
                     this.getIntersectPoints(d);
                 }
+
                 this.startEffect(objOfScene);
 
                 //final settings for 2d
                 var c = objOfScene.circle2D.position,
+                    r = App.utils.types.rotateTo2D,
                     _2dOb = App.rebuild2D,
                     scale = (1 + _2dOb.dftAngleSq2DObj.scale + _2dOb.dftAngleSq2DObj.delt * (_2dOb.lstCrtdPl - 1));
                 _2dSq.position.set(c.x, c.y, 0.1);
-                _2dSq.rotation.set(2.52, 2.36, 0);//parallel to XY -0.6,2.36,0
-                _2dSq.scale.multiplyScalar(scale);//1.85
+                _2dSq.rotation.set(r.x, r.y, 0);//parallel to XY -0.6,2.36,0
+                _2dSq.scale.multiplyScalar(scale + 0.04);//1.85
 
-                //var deltaS = 0,
-                //    delta = (scale+(objOfScene.radiousObj-objOfScene.radiousObj*0.9)).toFixed(2);
-
-                //console.log(objOfScene.radiousObj,' = ',delta,scale);
-
-                _2dSmFgr.position.set(c.x, c.y, 0);//delta*scale
-                _2dSmFgr.rotation.set(2.52, 2.36, 0);
-                _2dSmFgr.scale.multiplyScalar(1.95);
+                _2dSmFgr.position.set(c.x, c.y, 0);
+                _2dSmFgr.rotation.set(r.x, r.y, 0);
+                _2dSmFgr.scale.multiplyScalar(scale + 0.09);
 
                 //translate all childs to correct position
                 _2dCI.position.set(c.x, c.y, 0);
+
+                //make tubes closer to camera than subfigures for adopted click
+                objOfScene.object2D.tube2D.position.z = 28;
             }
 
 

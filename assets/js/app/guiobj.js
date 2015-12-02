@@ -164,7 +164,6 @@ App.guiObj = {
         this.folders.menuFolder.add(App.guiObj.generateParameters, 'getScreen').name('ScreenShot');
 
 
-
         this.folders.menuFolder.add(App.guiObj.generateParameters, 'backDisplay').name('Background').onChange(function (val) {
             App.utils.types.webgl._background = val;
             if (val) {
@@ -196,11 +195,11 @@ App.guiObj = {
 
         this.folders.menuFolder.add(this.generateParameters, 'showListOfAn').name('Show List of Keys').onChange(function (val) {
             var g = App.guiObj;
-            if(!g.isListOfKeysAreGenereted){
+            if (!g.isListOfKeysAreGenereted) {
                 g.isListOfKeysAreGenereted = true;
                 g.interfaces.keysFolderGenerate(g.folders.keysFolder);
             }
-           g.folders.keysFolder.__ul.hidden = !val;
+            g.folders.keysFolder.__ul.hidden = !val;
         });
         this.folders.menuFolder.open();
         this.folders.keysFolder = this.folders.menuFolder.addFolder('List of the Keys');
@@ -239,6 +238,10 @@ App.guiObj = {
                 generateParameters = App.guiObj.generateParameters;
             generationFolder.add(generateParameters, 'effects', ['building', 'centeringSphere', 'centeringTriangle', 'shaders']).onChange(function (val) {
                 App.utils.types.animaEffect = val;
+            });
+            generationFolder.add(generateParameters, 'listEffects', ['fill', 'scaling', 'flashing']).name('Click Effects').onChange(function (val) {//'hBlur', 'edgeShader', 'focusShader','firework','fireBall'
+                App.utils.types.currentCluckEffect = val;
+                App.utils.interfaces.resetTooltipInfo();
             });
             /*  generationFolder.add(generateParameters, 'dimensn', ['3D', '2D']).name('Dimensions').onChange(function (val) {
              var webglObj = App.utils.types.webgl;
@@ -323,7 +326,7 @@ App.guiObj = {
                 remove: function () {
                 }
             };
-            var webglObj =  App.utils.types.webgl,listObjOfScene =webglObj.listObjOfScene,
+            var webglObj = App.utils.types.webgl, listObjOfScene = webglObj.listObjOfScene,
                 objs = listObjOfScene[listObjOfScene.length - 1],
                 nam = objs.name;
             var curFigure = App.guiObj.folders.editFolder.addFolder(nam);
@@ -340,7 +343,7 @@ App.guiObj = {
                 for (var folder in fldrs) {
                     if (flag) {
                         flag = false;
-                    } else if(fldrs[folder]) {
+                    } else if (fldrs[folder]) {
                         fldrs[folder].close();
                     }
 
@@ -433,25 +436,25 @@ App.guiObj = {
                 App.guiObj.interfaces.removeFigure(nam);
             });
 
-            if(!webglObj._dimension){
-                this.add2dInfo(curFigure,editParameters,objs);
+            if (!webglObj._dimension) {
+                this.add2dInfo(curFigure, editParameters, objs);
             }
             this.addRevolModeData(nam);
             if (number.toString().length == 3)this.addFigureInfo(nam);
             $(".hue-field").width(10); // костыль, чтоб не съезжала палитра addColor
         },
-        add2dInfo:function(curFigure,editParameters,obj){
-            obj.listOfDtG=[];
-            var c1 =curFigure.add(editParameters.figure, 'gsVis').name('Display GS').onChange(function (val) {
+        add2dInfo: function (curFigure, editParameters, obj) {
+            obj.listOfDtG = [];
+            var c1 = curFigure.add(editParameters.figure, 'gsVis').name('Display GS').onChange(function (val) {
                 App.utils.interfaces.gs.toggleVisible(obj, val);
             });
-            var c2 =curFigure.add(editParameters.figure, 'cIVis').name('Display Circle Info').onChange(function (val) {
+            var c2 = curFigure.add(editParameters.figure, 'cIVis').name('Display Circle Info').onChange(function (val) {
                 App.utils.interfaces.sphere.infoVis(obj, val);
             });
             obj.listOfDtG.push(c1);
             obj.listOfDtG.push(c2);
         },
-        clear2dInfo:function(arr){
+        clear2dInfo: function (arr) {
             var editFolder = App.guiObj.folders.editFolder;
             editFolder.remove(arr[0]);
             editFolder.remove(arr[1]);
@@ -586,10 +589,7 @@ App.guiObj = {
             generalSet.add(generateParameters, 'listTexture', ['NONE', 'mountain', 'siege', 'starfield', 'misty', 'tidepool']).name('Background').onChange(function (val) {
                 App.rebuildSkyBox.changeBackground(val);
             });
-            generalSet.add(generateParameters, 'listEffects', ['fill','scaling','flashing']).name('Click Effects').onChange(function (val) {//'hBlur', 'edgeShader', 'focusShader','firework','fireBall'
-                App.utils.types.currentCluckEffect = val;
-                App.utils.interfaces.resetTooltipInfo();
-            });
+
         },
         general2DSetFolders: function (generalSet) {
             var par = {
@@ -745,7 +745,7 @@ App.guiObj = {
                 lastObjAd = types.webgl.listObjOfScene[types.webgl.listObjOfScene.length - 1],
                 isNeedR = (lastObjAd.listOfPointes.length > 3), isloaded = types.loaded ? true : false,
                 _2dObj = lastObjAd.object2D;
-            if (listOfPoints && listOfPoints.length>2) {
+            if (listOfPoints && listOfPoints.length > 2) {
                 figureSet = isloaded ? types.loaded : Math.figureDataByPoints(listOfPoints, lastObjAd.listOf2dCord);
                 figData.square = figureSet.square.toString();
 
@@ -816,7 +816,7 @@ App.guiObj = {
                     scale = (1 + _2dOb.dftAngleSq2DObj.scale + _2dOb.dftAngleSq2DObj.delt * (_2dOb.lstCrtdPl - 1));
                 l.position.set(c.x, c.y, 0.1);
                 l.rotation.set(calc.r.x, calc.r.y, 0);//parallel to XY -0.6,2.36,0
-                l.scale.multiplyScalar(scale);
+                l.scale.multiplyScalar(scale + 0.1);
 
                 lc.position.set(c.x, c.y, 0.1);
                 var objPos = lc.position;
@@ -894,12 +894,12 @@ App.guiObj = {
                 fold.generationFolder.remove(gui.digitN);
             }
 
-            for(var i=0;i<obs.length;i++){
-                if(dimension){
+            for (var i = 0; i < obs.length; i++) {
+                if (dimension) {
                     gui.interfaces.clear2dInfo(obs[i].listOfDtG);
-                }else{
-                    var lst =obs[i].last2dInf;
-                    gui.interfaces.add2dInfo(obs[i].curFigure,{figure:{gsVis:lst.gsVis,cIVis:lst.cIVis}},obs[i]);
+                } else {
+                    var lst = obs[i].last2dInf;
+                    gui.interfaces.add2dInfo(obs[i].curFigure, {figure: {gsVis: lst.gsVis, cIVis: lst.cIVis}}, obs[i]);
                 }
             }
 

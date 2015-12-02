@@ -119,12 +119,25 @@ App.remote = {
 }
 
 //prototypes
-THREE.Mesh.prototype.building = function (arr, flag, objOfScene, flag1,flag2) {
+/*
+* arr - list of meshes(points)
+* flag - if need to set the speed for animation on figure  creation
+* objOfScene - object whose will consist the result of animation
+* flag1 - something for draw in 2d view
+* flag2 - if need to set the speed for animation on click on figure
+* flag3 - tubes type on click on tube
+* */
+THREE.Mesh.prototype.building = function (arr, flag, objOfScene, flag1, flag2, flag3) {
     this.iter = 0;
-    this.drawPoints = /*objOfScene.category == 'object2D' ? 1 : */arr.length;
+    this.drawPoints = arr.length;
     this.tooltip.visible = true;
     this.setScaling = 1.2;
-    var currentObject = this, lastObj = App.utils.types.webgl.listObjOfScene[App.utils.types.webgl.listObjOfScene.length - 1];
+    this.isDrawed = true;
+    var currentObject = this,
+        types = App.utils.types,
+        lastObj = types.webgl.listObjOfScene[types.webgl.listObjOfScene.length - 1];
+
+    objOfScene.intervals = objOfScene.intervals ? objOfScene.intervals : [];
 
     /**bang*/
     var geometry = new THREE.Geometry();
@@ -150,21 +163,10 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene, flag1,flag2) {
 
     /**building */
     if (flag && currentObject.isFirst) {
-        //if(!arr[arr.length-1].isAn) {
         if (arr[0]) {
             settingsAn(arr[0]);
-        } else if (arr[1]) {
-            settingsAn(arr[1]);
         }
-        //if (arr[arr.length - 2]) {
-        //        arr[arr.length - 1].isAn = true;
-        //        settingsAn(arr[arr.length - 2]);
-        //    }
-        //}else{
-        //    if (arr[1])settingsAn(arr[1]);
-        //}
     } else {
-
         $.each(arr, function (key, nextObject) {
             if (flag1) {
                 if (key > 0) {
@@ -179,13 +181,11 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene, flag1,flag2) {
 
     function settingsAn(nextObject) {
         var tubeMaterial,
-            newMatrl= new THREE.MeshBasicMaterial({color:'#ff0f0f'});// = currentObject.material;
+            newMatrl = new THREE.MeshBasicMaterial({color: '#ff0f0f'});// = currentObject.material;
         var pMaterial = new THREE.PointsMaterial({
             color: 0xfff000,
             size: 1.5,
-            map: THREE.ImageUtils.loadTexture(
-                "assets/img/particleA.png"
-            ),
+            map: types.textures[0],
             blending: THREE.AdditiveBlending,
             depthTest: false,
             transparent: true
@@ -211,93 +211,138 @@ THREE.Mesh.prototype.building = function (arr, flag, objOfScene, flag1,flag2) {
         };
         if (vBegn != vEnd) {
             var truba = false;// flag ? lastObj.helpers.getLineByPoint(vBegn, vEnd) : objOfScene.helpers.getTubeByPoint(vBegn, vEnd, false, flag);
-            if(flag2){
-                truba = objOfScene.parent?objOfScene.parent.helpers.getTubeByPoint(vBegn, vEnd, false, flag):false;
-            }else if(flag){
+            if (flag2) {
+                if (types.webgl._dimension) {
+                    truba = objOfScene.parent ? objOfScene.parent.helpers.getTubeByPoint(vBegn, vEnd, false, flag) : false;
+                } else {
+                    var mainObj = App.utils.interfaces.getObjByName(objOfScene.parent.parent.name);
+                    if (mainObj) truba = mainObj.helpers.getLineByPoint(vBegn, vEnd, false, flag);
+                }
+
+
+            } else if (flag) {
                 truba = lastObj.helpers.getLineByPoint(vBegn, vEnd);
-            }else{
+            } else {
                 truba = objOfScene.helpers.getTubeByPoint(vBegn, vEnd, false, flag);
             }
-            if (truba && (!truba.visible ||  !truba.isBuild)) {
+            if (flag3 && truba) {
+                if ((truba.inner && flag3 == "OUTER") ||
+                    (!truba.inner && flag3 == "INNER") ||
+                    (flag3 == "InOut")
+                ) {
+                    trubaSettings();
+                }
+            } else if (truba && (!truba.visible || !truba.isBuild)) {
+                trubaSettings();
+            }
+
+            function trubaSettings() {
                 if (!flag) {
-                    truba.geometry =flag2?truba.geometry: App.utils.interfaces.tubeLineGeometry(vBegn, vBegn, flag);
+                    truba.geometry = flag2 ? truba.geometry : App.utils.interfaces.tubeLineGeometry(vBegn, vBegn, flag);
                     truba.visible = true;
                 }
                 curPoint.truba = truba;
                 truba.isBuild = true;
-                tubeMaterial = flag2?newMatrl:truba.material;
+                tubeMaterial = flag2 ? newMatrl : truba.material;
                 var timerH = flag ? flag : Math.getRandomArbitrary(20, 50);
-                if(flag2)timerH=flag2;
+                if (flag2)timerH = flag2;
                 var intBuild = setInterval(function () {
                     objOfScene.add(curPoint.endTrubeLight);
                     return animateBuilding(curPoint)
-                }, timerH);//
-            }
+                }, timerH);
+                objOfScene.intervals.push(intBuild);
 
-            function animateBuilding(curPoint) {
-                var vBegn = curPoint.vBegn;
-                var vEnd = curPoint.vEnd;
-                var endPointLlight = curPoint.endTrubeLight;
-                if (flag)  objOfScene.remove(tube);
+                function animateBuilding(curPoint) {
+                    var vBegn = curPoint.vBegn;
+                    var vEnd = curPoint.vEnd;
+                    var endPointLlight = curPoint.endTrubeLight;
+                    if (flag)  objOfScene.remove(tube);
 
-                if (curPoint.keyP > curPoint.countOfPoints) {
-                    objOfScene.remove(endPointLlight);
-                    curPoint.truba.visible = true;
-                    currentObject.iter++;
-
-                    clearInterval(intBuild);
-                    if (currentObject.iter == currentObject.drawPoints || currentObject.isFirst) {
-                        var isCurOvj = arr.indexOf(currentObject);
-                        if (isCurOvj >= 0 || currentObject.isFirst) {
-                            arr.shift();
-                            //for 2ld ending animation
-                            if(!arr.length){
-                                if ( currentObject.isFirst && objOfScene._2dPnts.length > 3) {
-                                    var copy2DPnts = objOfScene._2dPnts.concat([]),
-                                        firstAn = copy2DPnts.shift();
-                                    //copy2DPnts.push(firstAn);
-                                    firstAn.isFirst = false;
-                                    for (var js = 0; js < copy2DPnts.length; js++) {
-                                        copy2DPnts[js].isFirst = false;
+                    if (curPoint.keyP > curPoint.countOfPoints) {
+                        objOfScene.remove(endPointLlight);
+                        curPoint.truba.visible = true;
+                        currentObject.iter++;
+                        clearInterval(intBuild);
+                        if (currentObject.iter == currentObject.drawPoints || currentObject.isFirst) {
+                            var isCurOvj = arr.indexOf(currentObject);
+                            if (isCurOvj >= 0 || currentObject.isFirst) {
+                                arr.shift();
+                                //for 2ld ending animation
+                                if (!arr.length && !flag3) {
+                                    if (currentObject.isFirst && objOfScene._2dPnts.length > 3) {
+                                        var copy2DPnts = objOfScene._2dPnts.concat([]),
+                                            firstAn = copy2DPnts.shift();
+                                        //copy2DPnts.push(firstAn);
+                                        firstAn.isFirst = false;
+                                        for (var js = 0; js < copy2DPnts.length; js++) {
+                                            copy2DPnts[js].isFirst = false;
+                                        }
+                                        firstAn.building(copy2DPnts, flag, objOfScene, flag1);
                                     }
-                                    firstAn.building(copy2DPnts, flag, objOfScene, true);
                                 }
                             }
                         }
-                        if(currentObject.parent.pSystem){
-                            currentObject.parent.pSystem.visible =true;
+                        if (flag3) {
+                            if (flag3 == 'INNER'|| flag3 == 'InOut') {
+                                arr.shift();
+                                if(arr.length ==0){
+                                    if (currentObject.parent.pSystem) {
+                                        currentObject.parent.pSystem.visible = true;
+                                    }
+                                }
+                            } else {
+                                var ch = false;
+                                for (var i = 0; i < arr.length; i++) {
+                                    if (!arr[i].isDrawed) {
+                                        ch = true;
+                                        break;
+                                    }
+                                }
+                                if (!ch) {
+                                    arr = [];
+                                    if (currentObject.parent.pSystem) {
+                                        currentObject.parent.pSystem.visible = true;
+                                    }
+                                    for (var i = 0; i < objOfScene.intervals.length; i++) {
+                                        clearInterval(objOfScene.intervals[i]);
+                                    }
+                                    objOfScene.intervals = [];
+                                }
+                            }
+
                         }
-
-                    }
-                    if(arr.length ==0 ){
-                       var cur = App.utils.interfaces.getObjByName(objOfScene.name);
-                        if(cur){
-                            cur.sphere.material.opacity = 0.2;
-
+                        if (arr.length == 0) {
+                            var cur = App.utils.interfaces.getObjByName(objOfScene.name);
+                            if (cur) {
+                                cur.sphere.material.opacity = 0.2;
+                            }
                         }
+                        ne.building(arr, flag, objOfScene, flag1, flag2, flag3);
+                    } else {
+                        var enPpos = new THREE.Vector3(
+                            (vEnd.x - vBegn.x) * ((curPoint.keyP) / curPoint.countOfPoints) + vBegn.x,
+                            (vEnd.y - vBegn.y) * ((curPoint.keyP) / curPoint.countOfPoints) + vBegn.y,
+                            (vEnd.z - vBegn.z) * ((curPoint.keyP++) / curPoint.countOfPoints) + vBegn.z
+                        );
+                        var ut = App.utils,
+                            rad = ut.types.webgl._dimension ? 0.015 : 0.035;
+                        var tubeGeometry = ut.interfaces.tubeLineGeometry(vBegn, enPpos, flag, flag3 ? rad : false);
+                        if (flag) {
+                            tube = new THREE.Line(tubeGeometry, tubeMaterial);
+                            objOfScene.add(tube);
+                        } else if (flag2) {
+                            tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
+                            objOfScene.add(tube);
+                        } else {
+                            curPoint.truba.geometry = tubeGeometry;
+                        }
+                        endPointLlight.position.set(enPpos.x, enPpos.y, enPpos.z);
 
                     }
-                    ne.building(arr, flag, objOfScene,flag1,flag2);
-                } else {
-                    var enPpos = new THREE.Vector3(
-                        (vEnd.x - vBegn.x) * ((curPoint.keyP) / curPoint.countOfPoints) + vBegn.x,
-                        (vEnd.y - vBegn.y) * ((curPoint.keyP) / curPoint.countOfPoints) + vBegn.y,
-                        (vEnd.z - vBegn.z) * ((curPoint.keyP++) / curPoint.countOfPoints) + vBegn.z
-                    );
-                    var tubeGeometry = flag1?App.utils.interfaces.tubeLineGeometry(vBegn, enPpos, flag,0.02):App.utils.interfaces.tubeLineGeometry(vBegn, enPpos, flag);
-                    if (flag) {
-                        tube = new THREE.Line(tubeGeometry, tubeMaterial);
-                        objOfScene.add(tube);
-                    } else if(flag2) {
-                        tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
-                        objOfScene.add(tube);
-                    }else {
-                        curPoint.truba.geometry = tubeGeometry;
-                    }
-                    endPointLlight.position.set(enPpos.x, enPpos.y, enPpos.z);
-
                 }
             }
+
+
         }
     }
 
@@ -380,14 +425,14 @@ THREE.Mesh.prototype.buildCircle = function (center, radius, bgnAngle, steps, sp
 CanvasRenderingContext2D.prototype.fillTextCircle = function (text, x, y, radius, startRotation) {
 
     var delta = 0;
-    if(radius<130){
-        delta =20;
-    }else if(radius>130 && radius<270 ){
-        delta =35;
-    }else{
-        delta =50;
+    if (radius < 130) {
+        delta = 20;
+    } else if (radius > 130 && radius < 270) {
+        delta = 35;
+    } else {
+        delta = 50;
     }
-        var numDegreesPerLetter = Math.PI * (delta/radius) / text.length;
+    var numDegreesPerLetter = Math.PI * (delta / radius) / text.length;
     this.save();
     this.translate(x, y);
     this.rotate(startRotation);
@@ -1028,10 +1073,10 @@ function isReady() {
         App.utils.interfaces.backControls(back);
     });
     $('input:radio').click(function (val) {
-        var types = App.utils.types,webglObj =types.webgl,
+        var types = App.utils.types, webglObj = types.webgl,
             listObj = webglObj.listObjOfScene,
             lastObj = listObj[listObj.length - 1]
-            ,is3D = val.currentTarget.value == '3D';
+            , is3D = val.currentTarget.value == '3D';
         webglObj._dimension = is3D;
         webglObj.controls.reset();
         App.utils.interfaces.setOnWhhel(true);
@@ -1040,13 +1085,7 @@ function isReady() {
             webglObj.renderer.setClearColor(back.clr, back.op);
             webglObj.camera = webglObj.perspectCamera;
             webglObj.camera.position.set(20, 20, 20);
-            /*webglObj.controls.rotateSpeed = 10.0;
-            webglObj.controls.panSpeed = 0.8;
-            webglObj.controls.minDistance = 0;
-            webglObj.controls.maxDistance = 300;
-            webglObj.cameraFixed = false;*/
             if (listObj.length > 0) {
-                //lastObj.visible = true;
                 var lstObj = lastObj.sphere.position;
                 webglObj.camera.lookAt(lstObj);
                 webglObj.controls.target.set(lstObj.x, lstObj.y, lstObj.z);
@@ -1062,32 +1101,20 @@ function isReady() {
             webglObj.camera = webglObj.orpgCamera;
             webglObj.camera.position.set(webglObj._dftControl.x, webglObj._dftControl.y, -15);
             webglObj.camera.lookAt(cur2d);
-            /*webglObj.controls.target.set(cur2d.x, cur2d.y, cur2d.z);
-            webglObj.controls.rotateSpeed = 0.0;
-            webglObj.controls.panSpeed = 0.0;
-            webglObj.controls.minDistance = 5//App.rebuild2D.lstCrtdPl < 4 ? 5 : 10;
-            webglObj.controls.maxDistance = 40//App.rebuild2D.lstCrtdPl < 4 ? 40 : 50;
-            webglObj.cameraFixed = true;*/
             if (listObj.length > 0 && lastObj.isHuge) {
-                //lastObj.visible = false;
                 var cur = {}, cir = {};
                 cur.x = webglObj._dftControl.x,
                     cur.y = webglObj._dftControl.y,
                     cir.x = lastObj.circle2D.position.x,
                     cir.y = lastObj.circle2D.position.y
-                //webglObj._2dConsist.bgnPath = {x: webglObj._2dConsist.position.x,y:webglObj._2dConsist.position.y};
-                //webglObj._2dConsist.endPath = {x:cur.x- cir.x,y:cur.y- cir.y};
-                webglObj._2dConsist.position.x = cur.x - cir.x//cur.x< cir.x?cur.x+ cir.x:cur.x- cir.x;
-                webglObj._2dConsist.position.y = cur.y - cir.y//cur.y< cir.y?cur.y- cir.y:cur.y+ cir.y;
+                webglObj._2dConsist.position.x = cur.x - cir.x;
+                webglObj._2dConsist.position.y = cur.y - cir.y;
             }
         }
         //webglObj.renderPass.camera = webglObj.camera;
         webglObj._2dConsist.visible = !is3D;
         App.guiObj.interfaces.changeStructure(val.currentTarget.value == '3D');
         App.utils.events.staticResize();
-        /*  for(var i=0;i<listObj.length;i++){
-         App.utils.interfaces.changeDimension(false,false,listObj[i]);
-         }*/
 
     });
     $('#THREEJS canvas').css({position: 'relative', border: '3px solid white'});
